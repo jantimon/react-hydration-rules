@@ -13,6 +13,29 @@ When React hydrates a server-rendered application, it faces a fundamental challe
 > [!CAUTION]
 The most important finding: **any state change during hydration will trigger Suspense fallbacks**, regardless of how you wrap or optimize the update. This behavior prioritizes consistency over smooth UX during the critical hydration phase.
 
+```mermaid
+flowchart TD
+    A[User Interaction] --> B{App Hydrated?}
+    
+    B -->|No - During Hydration| C{State Update?}
+    B -->|Yes - Post Hydration| D{State Update?}
+    
+    C -->|No Change| E[✅ No Fallback]
+    C -->|Same Value| F{React Optimization}
+    C -->|New Value| G[💣 Suspense Fallback]
+    
+    F -->|useState/useReducer| E
+    F -->|External Store| G
+    
+    D -->|No Change| E
+    D -->|Same Value| E
+    D -->|New Value| H{Wrapped in Transition?}
+    
+    H -->|Yes| I[⚡ Prevents Fallback]
+    H -->|No| J[💣 May Trigger Fallback]
+    H -->|External Store| K[💣 Always Triggers]
+```
+
 ### 💣 What Triggers Suspense Fallbacks
 
 Even if the server includes the full HTML for a **lazy** component, any state change during hydration will trigger Suspense fallbacks and therefore remove the existing content.
@@ -111,7 +134,7 @@ External stores using `useSyncExternalStore` have a unique constraint: they **ca
 | `useReducer` (**same** value) | ✅ **Never triggers**  | React's built-in optimization prevents fallback |
 | `startTransition` (sync)      | 💣 **Still triggers**  | Transitions have no effect during hydration     |
 | `startTransition` (async)     | 💣 **Still triggers**  | Identical behavior to sync during hydration     |
-| `useSyncExternalStore`        | 💣 **Always triggers** | Cannot be optimized away during hydration       |
+| `useSyncExternalStore`        | 💣 **Always triggers** | [Cannot benefit from transitions at any phase](https://react.dev/reference/react/useSyncExternalStore#caveats) |
 
 ### Post-Hydration Phase
 
@@ -161,7 +184,7 @@ Understanding React's behavior requires thinking in two distinct phases:
 
 ## 🛠️ Testing Approach
 
-These findings are based on comprehensive testing using:
+All of this has been thoroughly tested using:
 
 - **Server-Side Rendering**: Real SSR with `renderToPipeableStream`
 - **Client Hydration**: Actual hydration with `hydrateRoot`
