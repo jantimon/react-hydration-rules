@@ -194,7 +194,7 @@ expect(screen.findByText("Suspended")).resolves.toBeInTheDocument();
 
 ## 🧪 Try It Yourself
 
-[![Tests](https://github.com/jantimon/react-hydration-rules/workflows/Tests/badge.svg)](https://github.com/jantimon/react-hydration-rules/actions)
+[![Tests](https://github.com/jantimon/react-hydration-rules/actions/workflows/test.yml/badge.svg)](https://github.com/jantimon/react-hydration-rules/actions/workflows/test.yml)
 
 Don't trust my word? Good - you shouldn't. Every behavior I've documented here comes from actual tests you can run yourself.
 
