@@ -6,7 +6,7 @@ I spent way too much time debugging these behaviors in production, so I built th
 
 ## 🎯 The Hydration Challenge
 
-When React hydrates a server-rendered application, it faces a fundamental challenge: maintaining UI consistency while making components interactive. Modern React (since v18) introduced **selective hydration** and **concurrent rendering** to solve this, but these features come with nuanced behaviors that can catch developers off guard.
+When React hydrates a server-rendered application, it faces a fundamental challenge: maintaining UI consistency while making components interactive. Modern React (since v18) [introduced **selective hydration** and **concurrent rendering**](https://github.com/reactwg/react-18/discussions/37) to solve this, but these features come with nuanced behaviors that can catch developers off guard.
 
 ### Key Insight: State Changes Always Overrule During Hydration
 
@@ -123,7 +123,7 @@ External stores using `useSyncExternalStore` have a unique constraint: they **ca
 | `useReducer` (**same** value) | ✅ **Never triggers**     | React's built-in optimization still applies       |
 | `startTransition` (sync)      | ✅ **Prevents fallbacks** | Transitions work as expected post-hydration       |
 | `startTransition` (async)     | ✅ **Prevents fallbacks** | Full transition API available                     |
-| `useSyncExternalStore`        | 💣 **Always triggers**    | Cannot benefit from transitions at any phase      |
+| `useSyncExternalStore`        | 💣 **Always triggers**    | [Cannot benefit from transitions at any phase](https://react.dev/reference/react/useSyncExternalStore#caveats)      |
 
 ## 🎭 The Two Phases of React Apps
 
