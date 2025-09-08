@@ -1,0 +1,35 @@
+{
+  "name": "react-hydration-rules",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Comprehensive guide documenting React hydration and Suspense fallback behaviors during SSR",
+  "author": "Jan Nicklas",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jantimon/react-hydration-rules.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
+    "jotai": "^2.14.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "stream": "^0.0.3"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@types/node": "^24.3.1",
+    "@vitejs/plugin-react": "^5.0.2",
+    "happy-dom": "^18.0.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vitest": "^3.2.4"
+  }
+}
