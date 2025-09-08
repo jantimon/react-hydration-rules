@@ -10,9 +10,8 @@ When React hydrates a server-rendered application, it faces a fundamental challe
 
 ### Key Insight: State Changes Always Overrule During Hydration
 
+> [!CAUTION]
 The most important finding: **any state change during hydration will trigger Suspense fallbacks**, regardless of how you wrap or optimize the update. This behavior prioritizes consistency over smooth UX during the critical hydration phase.
-
-## 🔬 Documented Behaviors
 
 ### 💣 What Triggers Suspense Fallbacks
 
@@ -78,7 +77,7 @@ const reducer = (state, action) => {
 }
 ```
 
-## 🧠 Why This Happens
+## 💭 Why This Happens
 
 ### React's Hydration Priority System
 
@@ -106,25 +105,25 @@ External stores using `useSyncExternalStore` have a unique constraint: they **ca
 
 | Update Type                   | Behavior               | Notes                                           |
 | ----------------------------- | ---------------------- | ----------------------------------------------- |
-| `useState` (**new** value)    | ✅ **Always triggers** | Any actual value change causes fallback         |
-| `useState` (**same** value)   | ❌ **Never triggers**  | React's built-in optimization prevents fallback |
-| `useReducer` (**new** value)  | ✅ **Always triggers** | Any actual state change causes fallback         |
-| `useReducer` (**same** value) | ❌ **Never triggers**  | React's built-in optimization prevents fallback |
-| `startTransition` (sync)      | ✅ **Still triggers**  | Transitions have no effect during hydration     |
-| `startTransition` (async)     | ✅ **Still triggers**  | Identical behavior to sync during hydration     |
-| `useSyncExternalStore`        | ✅ **Always triggers** | Cannot be optimized away during hydration       |
+| `useState` (**new** value)    | 💣 **Always triggers** | Any actual value change causes fallback         |
+| `useState` (**same** value)   | ✅ **Never triggers**  | React's built-in optimization prevents fallback |
+| `useReducer` (**new** value)  | 💣 **Always triggers** | Any actual state change causes fallback         |
+| `useReducer` (**same** value) | ✅ **Never triggers**  | React's built-in optimization prevents fallback |
+| `startTransition` (sync)      | 💣 **Still triggers**  | Transitions have no effect during hydration     |
+| `startTransition` (async)     | 💣 **Still triggers**  | Identical behavior to sync during hydration     |
+| `useSyncExternalStore`        | 💣 **Always triggers** | Cannot be optimized away during hydration       |
 
 ### Post-Hydration Phase
 
 | Update Type                   | Behavior                  | Notes                                             |
 | ----------------------------- | ------------------------- | ------------------------------------------------- |
 | `useState` (**new** value)    | ⚡ **Can be optimized**   | Transitions prevent fallbacks for state updates   |
-| `useState` (**same** value)   | ❌ **Never triggers**     | React's built-in optimization still applies       |
+| `useState` (**same** value)   | ✅ **Never triggers**     | React's built-in optimization still applies       |
 | `useReducer` (**new** value)  | ⚡ **Can be optimized**   | Transitions prevent fallbacks for reducer updates |
-| `useReducer` (**same** value) | ❌ **Never triggers**     | React's built-in optimization still applies       |
+| `useReducer` (**same** value) | ✅ **Never triggers**     | React's built-in optimization still applies       |
 | `startTransition` (sync)      | ✅ **Prevents fallbacks** | Transitions work as expected post-hydration       |
 | `startTransition` (async)     | ✅ **Prevents fallbacks** | Full transition API available                     |
-| `useSyncExternalStore`        | ✅ **Always triggers**    | Cannot benefit from transitions at any phase      |
+| `useSyncExternalStore`        | 💣 **Always triggers**    | Cannot benefit from transitions at any phase      |
 
 ## 🎭 The Two Phases of React Apps
 
