@@ -15,7 +15,7 @@ The most important finding: **any state change during hydration will trigger Sus
 
 ### 💣 What Triggers Suspense Fallbacks
 
-Even if the server includes the full HTML for a component, any state change during hydration will trigger Suspense fallbacks and therefore remove the existing content.
+Even if the server includes the full HTML for a **lazy** component, any state change during hydration will trigger Suspense fallbacks and therefore remove the existing content.
 
 **Regular State Updates** ([test](src/tests/SuspenseTriggerOnStateChangeComponent.test.tsx))
 
