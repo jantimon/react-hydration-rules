@@ -133,14 +133,6 @@ The state change itself is properly wrapped in a transition, but **rendering the
 
 ## 💭 Why This Happens
 
-### React's Hydration Priority System
-
-During hydration, React must ensure the client-side component tree matches what was rendered on the server. When state changes occur:
-
-1. **Consistency First**: React re-evaluates the entire component tree
-2. **Lazy Components**: If lazy components are still loading, fallbacks must show
-3. **No Exceptions**: Even transitions can't override this safety mechanism
-
 ### The External Store Exception
 
 External stores using `useSyncExternalStore` have a unique constraint: they **cannot benefit from transition optimizations**. As documented in the React docs, external store mutations cannot be marked as non-blocking transitions, making them always trigger Suspense fallbacks.
@@ -151,7 +143,7 @@ External stores using `useSyncExternalStore` have a unique constraint: they **ca
 
 - Transitions successfully prevent Suspense fallbacks for state updates
 - React can safely defer updates while maintaining consistency
-- Both sync and async transitions behave identically and effectively
+- Transitions behave the same way during hydration, regardless of whether they are synchronous or use the async keyword
 - The only exception is when rendering `isPending` state, which breaks the optimization
 
 ## 📊 Complete Behavior Matrix
