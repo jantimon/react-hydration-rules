@@ -5,7 +5,7 @@ import React, { Suspense, lazy, useSyncExternalStore } from "react";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const resetLazyCache = () => {
   LazyChild = lazy(() =>
-    sleep(1000).then(() =>
+    sleep(300).then(() =>
       import("./fixtures/LazyChild").then((module) => ({
         default: module.LazyChild,
       })),
@@ -81,17 +81,14 @@ test("external store change triggers Suspense fallback during React 18 lazy hydr
   // SSR should show non-suspended content initially
   expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
 
-  // Wait for hydration to complete
-  await waitFor(() => {
-    expect(screen.getByRole("button")).toBeInTheDocument();
-  });
-
   // Step 2: Click the counter button to trigger external store change
   const counterButton = screen.getByRole("button");
   fireEvent.click(counterButton);
 
   // Verify counter incremented
-  expect(counterButton).toHaveTextContent("Counter: 1");
+  await waitFor(() => {
+    expect(counterButton).toHaveTextContent("Counter: 1");
+  });
 
   // Step 3: Verify suspense fallback is triggered by external store change
   // External store mutations cannot be marked as non-blocking transitions

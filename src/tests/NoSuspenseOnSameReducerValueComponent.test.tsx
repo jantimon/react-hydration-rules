@@ -1,11 +1,11 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { renderAndHydrate } from "./reactRendering";
+import { fireEvent, screen } from "@testing-library/react";
 import React, { Suspense, lazy, useReducer } from "react";
+import { renderAndHydrate } from "./reactRendering";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const resetLazyCache = () => {
   LazyChild = lazy(() =>
-    sleep(1000).then(() =>
+    sleep(300).then(() =>
       import("./fixtures/LazyChild").then((module) => ({
         default: module.LazyChild,
       })),
@@ -65,11 +65,6 @@ test("reducer returning previous value does NOT trigger Suspense fallback during
   // SSR should show non-suspended content initially
   expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
 
-  // Wait for hydration to complete
-  await waitFor(() => {
-    expect(screen.getByRole("button")).toBeInTheDocument();
-  });
-
   // Step 2: Click button to dispatch action that returns previous value
   const counterButton = screen.getByRole("button");
   fireEvent.click(counterButton);
@@ -78,6 +73,8 @@ test("reducer returning previous value does NOT trigger Suspense fallback during
   expect(counterButton).toHaveTextContent("Counter: 0");
 
   // Step 3: Verify suspense fallback is NOT triggered (should remain non-suspended)
-  expect(screen.queryByText("Suspended")).not.toBeInTheDocument();
   expect(screen.getByText("Not Suspended")).toBeInTheDocument();
+
+  await sleep(100);
+  expect(screen.queryByText("Suspended")).not.toBeInTheDocument();
 });

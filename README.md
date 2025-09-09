@@ -6,39 +6,46 @@ I spent way too much time debugging these behaviors in production, so I built th
 
 ## 🎯 The Hydration Challenge
 
-When React hydrates a server-rendered application, it faces a fundamental challenge: maintaining UI consistency while making components interactive. Modern React (since v18) [introduced **selective hydration** and **concurrent rendering**](https://github.com/reactwg/react-18/discussions/37) to solve this, but these features come with nuanced behaviors that can catch developers off guard.
+When React hydrates server-rendered content, it needs to make components interactive while keeping the UI consistent. React 18 [introduced **selective hydration** and **concurrent rendering**](https://github.com/reactwg/react-18/discussions/37) to improve this process, but there are some tricky parts worth understanding
 
-### Key Insight: State Changes Always Overrule During Hydration
+### Key Insight: Synchronous State Changes Overrule Suspense During Hydration
 
 > [!CAUTION]
-The most important finding: **any state change during hydration will trigger Suspense fallbacks**, regardless of how you wrap or optimize the update. This behavior prioritizes consistency over smooth UX during the critical hydration phase.
+> **State updates during hydration always break Suspense** -> your server-rendered content will flash to loading spinners. You can prevent this by wrapping these state changes with `startTransition`
 
 ```mermaid
 flowchart TD
     A[User Interaction] --> B{App Hydrated?}
-    
+
     B -->|No - During Hydration| C{State Update?}
     B -->|Yes - Post Hydration| D{State Update?}
-    
+
     C -->|No Change| E[✅ No Fallback]
     C -->|Same Value| F{React Optimization}
-    C -->|New Value| G[💣 Suspense Fallback]
-    
+    C -->|New Value| G{Wrapped in Transition?}
+
     F -->|useState/useReducer| E
-    F -->|External Store| G
-    
+    F -->|External Store| H[💣 Suspense Fallback]
+
+    G -->|Yes| I{Rendering isPending?}
+    G -->|No| H[💣 Suspense Fallback]
+    G -->|External Store| H
+
+    I -->|Yes| H[💣 Suspense Fallback]
+    I -->|No| E[✅ No Fallback]
+
     D -->|No Change| E
     D -->|Same Value| E
-    D -->|New Value| H{Wrapped in Transition?}
-    
-    H -->|Yes| I[⚡ Prevents Fallback]
-    H -->|No| J[💣 May Trigger Fallback]
-    H -->|External Store| K[💣 Always Triggers]
+    D -->|New Value| J{Wrapped in Transition?}
+
+    J -->|Yes| K[⚡ Prevents Fallback]
+    J -->|No| L[💣 May Trigger Fallback]
+    J -->|External Store| M[💣 Always Triggers]
 ```
 
 ### 💣 What Triggers Suspense Fallbacks
 
-Even if the server includes the full HTML for a **lazy** component, any state change during hydration will trigger Suspense fallbacks and therefore remove the existing content.
+Even if the server includes the full HTML for a **lazy** component, certain patterns during hydration will still trigger Suspense fallbacks and remove the existing content.
 
 **Regular State Updates** ([test](src/tests/SuspenseTriggerOnStateChangeComponent.test.tsx))
 
@@ -61,30 +68,9 @@ const value = useSyncExternalStore(subscribe, getSnapshot);
 // Any external store mutation 💣 Always triggers fallback
 ```
 
-**Transition-Wrapped Updates (Sync)** ([test](src/tests/SuspenseTriggerOnTransitionUpdateComponent.test.tsx))
-
-```jsx
-const [isPending, startTransition] = useTransition();
-const handleClick = () => {
-  startTransition(() => {
-    setCount((prev) => prev + 1); // 💣 Still triggers fallback during hydration
-  });
-};
-```
-
-**Transition-Wrapped Updates (Async)** ([test](src/tests/SuspenseTriggerOnAsyncTransitionUpdateComponent.test.tsx))
-
-```jsx
-const handleClick = () => {
-  startTransition(async () => {
-    setCount((prev) => prev + 1); // 💣 Still triggers fallback during hydration
-  });
-};
-```
-
 ### ✅ What Doesn't Trigger Suspense Fallbacks
 
-React's built-in optimizations prevent fallbacks when updates don't actually change state.
+React's built-in optimizations prevent fallbacks when updates don't actually change state, and transitions effectively prevent fallbacks during hydration.
 
 **Same-Value State Updates** ([test](src/tests/NoSuspenseOnSameStateValueComponent.test.tsx))
 
@@ -100,6 +86,51 @@ const reducer = (state, action) => {
 }
 ```
 
+**Transition-Wrapped Updates** ([test](src/tests/NoSuspenseTriggerOnTransitionUpdateComponent.test.tsx))
+
+```jsx
+const handleClick = () => {
+  startTransition(() => {
+    setCount((prev) => prev + 1); // ✅ Prevents fallback during hydration
+  });
+};
+```
+
+**useTransition Hook Updates** ([test](src/tests/NoSuspenseTriggerOnUseTransitionUpdateComponent.test.tsx))
+
+```jsx
+const [, startTransition] = useTransition();
+const handleClick = () => {
+  startTransition(() => {
+    setCount((prev) => prev + 1); // ✅ Prevents fallback during hydration
+  });
+};
+```
+
+### ⚠️ Transition Edge Case: Rendering isPending
+
+While `startTransition` effectively prevents Suspense fallbacks during hydration, there's one important exception that can catch developers off guard.
+
+**Rendering Transition Pending State** ([test](src/tests/SuspenseTriggerOnIsPendingRenderComponent.test.tsx))
+
+```jsx
+const [isPending, startTransition] = useTransition();
+const handleClick = () => {
+  startTransition(() => {
+    setCount((prev) => prev + 1);
+  });
+};
+
+return (
+  <button>
+    Counter: {count} {isPending && "(pending)"}{" "}
+    {/* 💣 This triggers fallback */}
+  </button>
+);
+```
+
+The state change itself is properly wrapped in a transition, but **rendering the `isPending` state** causes additional renders that aren't transition-wrapped. This can trigger Suspense fallbacks during hydration, making it a subtle but important gotcha for developers who want to display pending states in their UI.
+
 ## 💭 Why This Happens
 
 ### React's Hydration Priority System
@@ -114,57 +145,27 @@ During hydration, React must ensure the client-side component tree matches what 
 
 External stores using `useSyncExternalStore` have a unique constraint: they **cannot benefit from transition optimizations**. As documented in the React docs, external store mutations cannot be marked as non-blocking transitions, making them always trigger Suspense fallbacks.
 
-### Why Transitions Don't Help During Hydration
+### How Transitions Work During Hydration
 
-`startTransition` is designed for **post-hydration navigation and updates**. During the hydration phase:
+`startTransition` is effective during **both hydration and post-hydration phases**. During the hydration phase:
 
-- Lazy components are still in an indeterminate state
-- React cannot safely defer updates without breaking consistency
-- Both sync and async transitions behave identically
+- Transitions successfully prevent Suspense fallbacks for state updates
+- React can safely defer updates while maintaining consistency
+- Both sync and async transitions behave identically and effectively
+- The only exception is when rendering `isPending` state, which breaks the optimization
 
 ## 📊 Complete Behavior Matrix
 
-### During Hydration Phase
-
-| Update Type                   | Behavior               | Notes                                           |
-| ----------------------------- | ---------------------- | ----------------------------------------------- |
-| `useState` (**new** value)    | 💣 **Always triggers** | Any actual value change causes fallback         |
-| `useState` (**same** value)   | ✅ **Never triggers**  | React's built-in optimization prevents fallback |
-| `useReducer` (**new** value)  | 💣 **Always triggers** | Any actual state change causes fallback         |
-| `useReducer` (**same** value) | ✅ **Never triggers**  | React's built-in optimization prevents fallback |
-| `startTransition` (sync)      | 💣 **Still triggers**  | Transitions have no effect during hydration     |
-| `startTransition` (async)     | 💣 **Still triggers**  | Identical behavior to sync during hydration     |
-| `useSyncExternalStore`        | 💣 **Always triggers** | [Cannot benefit from transitions at any phase](https://react.dev/reference/react/useSyncExternalStore#caveats) |
-
-### Post-Hydration Phase
-
-| Update Type                   | Behavior                  | Notes                                             |
-| ----------------------------- | ------------------------- | ------------------------------------------------- |
-| `useState` (**new** value)    | ⚡ **Can be optimized**   | Transitions prevent fallbacks for state updates   |
-| `useState` (**same** value)   | ✅ **Never triggers**     | React's built-in optimization still applies       |
-| `useReducer` (**new** value)  | ⚡ **Can be optimized**   | Transitions prevent fallbacks for reducer updates |
-| `useReducer` (**same** value) | ✅ **Never triggers**     | React's built-in optimization still applies       |
-| `startTransition` (sync)      | ✅ **Prevents fallbacks** | Transitions work as expected post-hydration       |
-| `startTransition` (async)     | ✅ **Prevents fallbacks** | Full transition API available                     |
-| `useSyncExternalStore`        | 💣 **Always triggers**    | [Cannot benefit from transitions at any phase](https://react.dev/reference/react/useSyncExternalStore#caveats)      |
-
-## 🎭 The Two Phases of React Apps
-
-Understanding React's behavior requires thinking in two distinct phases:
-
-### Phase 1: Hydration (Strict Rules)
-
-- **Goal**: Achieve consistency between server and client
-- **Behavior**: Any state change triggers fallbacks
-- **Optimization**: Limited to same-value updates only
-- **Duration**: Until all components are hydrated
-
-### Phase 2: Post-Hydration (Flexible UX)
-
-- **Goal**: Smooth user experience
-- **Behavior**: Transitions prevent jarring fallbacks
-- **Optimization**: Full transition API available
-- **Duration**: The rest of the app's lifecycle
+| Update Type                            | Behavior                  | Notes                                                                                                                                               |
+| -------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useState` (**new** value)             | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350)) |
+| `useState` (**same** value)            | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                     |
+| `useReducer` (**new** value)           | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350)) |
+| `useReducer` (**same** value)          | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                     |
+| `startTransition` (sync)               | ✅ **Prevents fallbacks** | Transitions work effectively during hydration and beyond                                                                                            |
+| `startTransition` (async)              | ✅ **Prevents fallbacks** | Identical behavior to sync transitions                                                                                                              |
+| `startTransition` + `isPending` render | 💣 **Still triggers**     | Rendering isPending state breaks transition optimization                                                                                            |
+| `useSyncExternalStore`                 | 💣 **Always triggers**    | Cannot benefit from transitions at any phase ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                           |
 
 ## 🚀 Practical Implications
 
@@ -172,15 +173,16 @@ Understanding React's behavior requires thinking in two distinct phases:
 
 - **Good**: Fast components don't wait for slow ones
 - **Good**: React optimizes away unnecessary updates
-- **Challenge**: State updates during hydration create loading flashes
+- **Good**: Transitions prevent loading flashes during hydration
 - **Challenge**: External stores can't benefit from transition optimizations
+- **Gotcha**: Rendering `isPending` state can still trigger fallbacks
 
 ### For Performance
 
 - **Selective Hydration**: Components hydrate independently
 - **Priority-Based**: User interactions can reprioritize hydration
 - **Optimization**: Same-value updates are completely skipped
-- **Trade-off**: Consistency during hydration vs. smooth UX
+- **Consistent Behavior**: Transitions work the same way throughout the app lifecycle
 
 ## 🛠️ Testing Approach
 
@@ -209,11 +211,11 @@ expect(screen.findByText("Suspended")).resolves.toBeInTheDocument();
 
 ## 🔑 Key Takeaways
 
-1. **State changes during hydration always trigger Suspense fallbacks** - no exceptions
-2. **Transitions are designed for post-hydration UX** - they don't prevent hydration fallbacks
-3. **External stores have inherent limitations** - they cannot benefit from transition optimizations
-4. **React optimizes same-value updates** - the only way to avoid fallbacks during hydration
-5. **Hydration is a special phase** - different rules apply compared to normal app operation
+1. **Transitions effectively prevent Suspense fallbacks during hydration** - `startTransition` works as intended in both phases
+2. **The isPending edge case** - rendering `isPending` state can still trigger fallbacks even within transitions
+3. **External stores have inherent limitations** - they cannot benefit from transition optimizations at any phase
+4. **React optimizes same-value updates** - built-in optimization prevents unnecessary fallbacks
+5. **Transitions work consistently** - same behavior and effectiveness during hydration and post-hydration phases
 
 ## 🧪 Try It Yourself
 
@@ -227,4 +229,6 @@ I wrote these tests because I was debugging some gnarly hydration issues in prod
 
 ---
 
-_Understanding these patterns helps developers make informed decisions about when to use transitions, how to handle external stores, and what UX trade-offs exist during the critical hydration phase._
+## 🙏 Thanks
+
+Big thanks to [@rickhanlonii](https://github.com/rickhanlonii) and [@gaearon](https://github.com/gaearon) for catching an important mistake in my original understanding

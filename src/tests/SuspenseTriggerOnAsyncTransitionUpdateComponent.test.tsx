@@ -5,7 +5,7 @@ import React, { Suspense, lazy, useState, useTransition } from "react";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const resetLazyCache = () => {
   LazyChild = lazy(() =>
-    sleep(1000).then(() =>
+    sleep(300).then(() =>
       import("./fixtures/LazyChild").then((module) => ({
         default: module.LazyChild,
       })),
@@ -60,11 +60,6 @@ test("transition-wrapped state change still triggers Suspense fallback during Re
   expect(screen.getByRole("button")).toHaveTextContent("Counter: 0");
   // SSR should show non-suspended content initially
   expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
-
-  // Wait for hydration to complete
-  await waitFor(() => {
-    expect(screen.getByRole("button")).toBeInTheDocument();
-  });
 
   // Step 2: Click the counter button to trigger transition-wrapped state change
   const counterButton = screen.getByRole("button");
