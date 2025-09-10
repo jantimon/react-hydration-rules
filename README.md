@@ -22,25 +22,44 @@ flowchart TD
 
     C -->|No Change| E[✅ No Fallback]
     C -->|Same Value| F{React Optimization}
-    C -->|New Value| G{Wrapped in Transition?}
+    C -->|New Value| G{External Store?}
 
     F -->|useState/useReducer| E
     F -->|External Store| H[💣 Suspense Fallback]
 
-    G -->|Yes| I{Rendering isPending?}
-    G -->|No| H[💣 Suspense Fallback]
-    G -->|External Store| H
+    G -->|Yes - useSyncExternalStore| H[💣 Always Triggers]
+    G -->|No| I{Wrapped in Transition?}
 
-    I -->|Yes| H[💣 Suspense Fallback]
-    I -->|No| E[✅ No Fallback]
+    I -->|No| H[💣 Suspense Fallback]
+    I -->|Yes| J{Async Operation?}
+
+    J -->|No - Sync| K{Rendering isPending?}
+    J -->|Yes - Async| L{When is State Update?}
+
+    K -->|Yes| H[💣 Suspense Fallback]
+    K -->|No| E[✅ No Fallback]
+
+    L -->|Pre-await| E[✅ No Fallback]
+    L -->|Post-await| M{Correctly Wrapped?}
+
+    M -->|No - Lost Context| H[💣 Suspense Fallback]
+    M -->|Yes| N{Which startTransition?}
+
+    N -->|Direct Import| O{Rendering isPending?}
+    N -->|useTransition Hook| H[💣 Still Triggers]
+
+    O -->|Yes| H[💣 Suspense Fallback]
+    O -->|No| E[✅ No Fallback]
 
     D -->|No Change| E
     D -->|Same Value| E
-    D -->|New Value| J{Wrapped in Transition?}
+    D -->|New Value| P{External Store?}
 
-    J -->|Yes| K[⚡ Prevents Fallback]
-    J -->|No| L[💣 May Trigger Fallback]
-    J -->|External Store| M[💣 Always Triggers]
+    P -->|Yes| Q[💣 Always Triggers]
+    P -->|No| R{Wrapped in Transition?}
+
+    R -->|Yes| S[⚡ Prevents Fallback]
+    R -->|No| T[💣 May Trigger Fallback]
 ```
 
 ### 💣 What Triggers Suspense Fallbacks
