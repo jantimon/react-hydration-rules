@@ -35,8 +35,8 @@ const SuspenseTriggerOnIsPendingRenderComponent: React.FC = () => {
         Counter: {counter} {isPending && "(pending)"}
       </button>
 
-      <Suspense fallback={<p>Suspended</p>}>
-        <p>Not Suspended</p>
+      <Suspense fallback={<p>Suspense Boundary Fallback</p>}>
+        <p>Suspense Boundary Content</p>
         <LazyChild />
       </Suspense>
     </div>
@@ -56,7 +56,9 @@ test("rendering isPending state triggers Suspense fallback even within startTran
   // Verify initial SSR state - counter button should be rendered
   expect(screen.getByRole("button")).toHaveTextContent("Counter: 0");
   // SSR should show non-suspended content initially
-  expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
+  expect(await screen.findAllByText("Suspense Boundary Content")).toHaveLength(
+    1,
+  );
 
   // Step 2: Click the counter button to trigger transition-wrapped state change
   const counterButton = screen.getByRole("button");
@@ -67,5 +69,7 @@ test("rendering isPending state triggers Suspense fallback even within startTran
 
   // Step 3: Verify suspense fallback is triggered despite startTransition
   // This happens because rendering isPending state breaks the transition optimization
-  expect(await screen.findByText("Suspended")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Suspense Boundary Fallback"),
+  ).toBeInTheDocument();
 });

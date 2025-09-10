@@ -1,6 +1,6 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { renderAndHydrate } from "./reactRendering";
+import { fireEvent, screen } from "@testing-library/react";
 import React, { Suspense, lazy, useState } from "react";
+import { renderAndHydrate } from "./reactRendering";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const resetLazyCache = () => {
@@ -29,8 +29,8 @@ const SuspenseTriggerOnStateChangeComponent: React.FC = () => {
     <div>
       <button onClick={handleIncrementCounter}>Counter: {counter}</button>
 
-      <Suspense fallback={<p>Suspended</p>}>
-        <p>Not Suspended</p>
+      <Suspense fallback={<p>Suspense Boundary Fallback</p>}>
+        <p>Suspense Boundary Content</p>
         <LazyChild />
       </Suspense>
     </div>
@@ -46,7 +46,9 @@ test("state change triggers Suspense fallback during React 18 lazy hydration", a
   // Verify initial SSR state - counter button should be rendered
   expect(screen.getByRole("button")).toHaveTextContent("Counter: 0");
   // SSR should show non-suspended content initially
-  expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
+  expect(await screen.findAllByText("Suspense Boundary Content")).toHaveLength(
+    1,
+  );
 
   // Step 2: Click the counter button to trigger state change
   const counterButton = screen.getByRole("button");
@@ -56,7 +58,9 @@ test("state change triggers Suspense fallback during React 18 lazy hydration", a
   expect(counterButton).toHaveTextContent("Counter: 1");
 
   // Step 3: Verify suspense fallback is triggered by state change
-  expect(await screen.findByText("Suspended")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Suspense Boundary Fallback"),
+  ).toBeInTheDocument();
 });
 
 afterEach(() => {

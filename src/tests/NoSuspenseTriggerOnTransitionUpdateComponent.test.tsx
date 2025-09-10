@@ -32,8 +32,8 @@ const SuspenseTriggerOnTransitionUpdateComponent: React.FC = () => {
     <div>
       <button onClick={handleIncrementCounter}>Counter: {counter}</button>
 
-      <Suspense fallback={<p>Suspended</p>}>
-        <p>Not Suspended</p>
+      <Suspense fallback={<p>Suspense Boundary Fallback</p>}>
+        <p>Suspense Boundary Content</p>
         <LazyChild />
       </Suspense>
     </div>
@@ -53,7 +53,9 @@ test("transition-wrapped state does NOT trigger Suspense fallback during React 1
   // Verify initial SSR state - counter button should be rendered
   expect(screen.getByRole("button")).toHaveTextContent("Counter: 0");
   // SSR should show non-suspended content initially
-  expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
+  expect(await screen.findAllByText("Suspense Boundary Content")).toHaveLength(
+    1,
+  );
 
   // Step 2: Click the counter button to trigger transition-wrapped state change
   const counterButton = screen.getByRole("button");
@@ -61,8 +63,10 @@ test("transition-wrapped state does NOT trigger Suspense fallback during React 1
 
   // Step 3: Verify suspense fallback is STILL triggered even with startTransition
   // During hydration, transitions don't prevent Suspense fallbacks when lazy components are loading
-  expect(await screen.findByText("Not Suspended")).toBeInTheDocument();
-
-  await sleep(100);
-  expect(screen.queryByText("Suspended")).not.toBeInTheDocument();
+  expect(
+    await screen.findByText("Suspense Boundary Content"),
+  ).toBeInTheDocument();
+  await expect(() =>
+    screen.findByText("Suspense Boundary Fallback"),
+  ).rejects.toThrow();
 });

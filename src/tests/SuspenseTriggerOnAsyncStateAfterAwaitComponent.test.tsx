@@ -1,6 +1,6 @@
 import { fireEvent, screen } from "@testing-library/react";
-import React, { Suspense, lazy, useState, useTransition } from "react";
 import { renderAndHydrate } from "./reactRendering";
+import React, { Suspense, lazy, useState, startTransition } from "react";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const resetLazyCache = () => {
@@ -19,13 +19,20 @@ let LazyChild = lazy(() =>
   })),
 );
 
-const SuspenseTriggerOnTransitionUpdateComponent: React.FC = () => {
+let stateUpdated = false;
+
+const SuspenseTriggerOnAsyncStateAfterAwaitComponent: React.FC = () => {
   const [counter, setCounter] = useState(0);
-  const [, startTransition] = useTransition();
 
   const handleIncrementCounter = () => {
-    startTransition(() => {
+    startTransition(async () => {
+      // Simulate async operation
+      await sleep(10);
+
+      // State update after await loses transition context
+      // This behaves like a synchronous state update
       setCounter((prev) => prev + 1);
+      stateUpdated = true;
     });
   };
 
@@ -45,10 +52,11 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-test("use transition-wrapped state does NOT trigger Suspense fallback during React 18 lazy hydration", async () => {
+test("state updates after await lose transition context and trigger Suspense fallback during hydration", async () => {
   // Step 1: Render and hydrate component using helper
-  await renderAndHydrate(<SuspenseTriggerOnTransitionUpdateComponent />, () =>
-    resetLazyCache(),
+  await renderAndHydrate(
+    <SuspenseTriggerOnAsyncStateAfterAwaitComponent />,
+    () => resetLazyCache(),
   );
 
   // Verify initial SSR state - counter button should be rendered
@@ -58,16 +66,15 @@ test("use transition-wrapped state does NOT trigger Suspense fallback during Rea
     1,
   );
 
-  // Step 2: Click the counter button to trigger transition-wrapped state change
+  // Step 2: Click the counter button to trigger async transition
   const counterButton = screen.getByRole("button");
   fireEvent.click(counterButton);
 
-  // Step 3: Verify suspense fallback is STILL triggered even with startTransition
-  // During hydration, transitions don't prevent Suspense fallbacks when lazy components are loading
+  // Step 3: Verify suspense fallback is triggered due to async context loss
+  // State updates after await lose the transition context and behave like sync updates
   expect(
-    await screen.findByText("Suspense Boundary Content"),
+    await screen.findByText("Suspense Boundary Fallback"),
   ).toBeInTheDocument();
-  await expect(() =>
-    screen.findByText("Suspense Boundary Fallback"),
-  ).rejects.toThrow();
+
+  await sleep(100);
 });

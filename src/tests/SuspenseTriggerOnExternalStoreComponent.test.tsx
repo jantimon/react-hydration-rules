@@ -56,8 +56,8 @@ const SuspenseTriggerOnExternalStoreComponent: React.FC = () => {
     <div>
       <button onClick={handleIncrementCounter}>Counter: {counter}</button>
 
-      <Suspense fallback={<p>Suspended</p>}>
-        <p>Not Suspended</p>
+      <Suspense fallback={<p>Suspense Boundary Fallback</p>}>
+        <p>Suspense Boundary Content</p>
         <LazyChild />
       </Suspense>
     </div>
@@ -79,7 +79,9 @@ test("external store change triggers Suspense fallback during React 18 lazy hydr
   // Verify initial SSR state - counter button should be rendered
   expect(screen.getByRole("button")).toHaveTextContent("Counter: 0");
   // SSR should show non-suspended content initially
-  expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
+  expect(await screen.findAllByText("Suspense Boundary Content")).toHaveLength(
+    1,
+  );
 
   // Step 2: Click the counter button to trigger external store change
   const counterButton = screen.getByRole("button");
@@ -92,5 +94,7 @@ test("external store change triggers Suspense fallback during React 18 lazy hydr
 
   // Step 3: Verify suspense fallback is triggered by external store change
   // External store mutations cannot be marked as non-blocking transitions
-  expect(await screen.findByText("Suspended")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Suspense Boundary Fallback"),
+  ).toBeInTheDocument();
 });

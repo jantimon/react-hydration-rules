@@ -68,6 +68,31 @@ const value = useSyncExternalStore(subscribe, getSnapshot);
 // Any external store mutation 💣 Always triggers fallback
 ```
 
+**Async State Updates After await** ([test](src/tests/SuspenseTriggerOnAsyncStateAfterAwaitComponent.test.tsx))
+
+```jsx
+const handleClick = () => {
+  startTransition(async () => {
+    await someAsyncOperation();
+    setCount((prev) => prev + 1); // 💣 Loses transition context after await
+  });
+};
+```
+
+**Correctly Wrapped Async useTransition** ([test](src/tests/SuspenseTriggerOnCorrectlyWrappedAsyncUseTransitionComponent.test.tsx))
+
+```jsx
+const [, startTransition] = useTransition();
+const handleClick = () => {
+  startTransition(async () => {
+    await someAsyncOperation();
+    startTransition(() => {
+      setCount((prev) => prev + 1); // 💣 Still triggers fallback during hydration with useTransition
+    });
+  });
+};
+```
+
 ### ✅ What Doesn't Trigger Suspense Fallbacks
 
 React's built-in optimizations prevent fallbacks when updates don't actually change state, and transitions effectively prevent fallbacks during hydration.
@@ -107,9 +132,62 @@ const handleClick = () => {
 };
 ```
 
-### ⚠️ Transition Edge Case: Rendering isPending
+**Correctly Wrapped Async startTransition (Direct Import)** ([test](src/tests/NoSuspenseTriggerOnCorrectlyWrappedAsyncTransitionComponent.test.tsx))
 
-While `startTransition` effectively prevents Suspense fallbacks during hydration, there's one important exception that can catch developers off guard.
+```jsx
+import { startTransition } from "react";
+
+const handleClick = () => {
+  startTransition(async () => {
+    await someAsyncOperation();
+    startTransition(() => {
+      setCount((prev) => prev + 1); // ✅ Prevents fallback during hydration
+    });
+  });
+};
+```
+
+### ⚠️ Transition Edge Cases
+
+While `startTransition` effectively prevents Suspense fallbacks during hydration, there are important exceptions that can catch developers off guard.
+
+#### React's Async Context Limitation
+
+Due to a JavaScript limitation, React loses the transition context after `await` operations. As documented in the [React docs](https://react.dev/reference/react/useTransition#react-doesnt-treat-my-state-update-after-await-as-a-transition), state updates after `await` are not automatically treated as transitions and will trigger Suspense fallbacks during hydration.
+
+The React docs recommend wrapping post-`await` state updates in another `startTransition`, but the effectiveness depends on which `startTransition` you use:
+
+```jsx
+// ❌ Loses transition context after await
+startTransition(async () => {
+  await someAsyncFunction();
+  setCount(1); // Triggers fallback during hydration
+});
+
+// ✅ Correctly wrapped with direct import - prevents fallback during hydration
+import { startTransition } from "react";
+startTransition(async () => {
+  await someAsyncFunction();
+  startTransition(() => {
+    setCount(1); // Prevents fallback during hydration
+  });
+});
+
+// 💣 Correctly wrapped with useTransition - still triggers fallback during hydration
+const [, startTransition] = useTransition();
+startTransition(async () => {
+  await someAsyncFunction();
+  startTransition(() => {
+    setCount(1); // Still triggers fallback during hydration
+  });
+});
+```
+
+The nested `startTransition` pattern works during hydration only when using the direct import from React, not when using the `startTransition` from the `useTransition()` hook.
+
+#### Rendering isPending State
+
+Even when state changes are properly wrapped in transitions, rendering the `isPending` state can still trigger fallbacks during hydration.
 
 **Rendering Transition Pending State** ([test](src/tests/SuspenseTriggerOnIsPendingRenderComponent.test.tsx))
 
@@ -137,27 +215,35 @@ The state change itself is properly wrapped in a transition, but **rendering the
 
 External stores using `useSyncExternalStore` have a unique constraint: they **cannot benefit from transition optimizations**. As documented in the React docs, external store mutations cannot be marked as non-blocking transitions, making them always trigger Suspense fallbacks.
 
+### The Async Context Limitation
+
+React loses the transition context after `await` operations due to a JavaScript limitation. This means state updates after `await` behave like synchronous updates and will trigger Suspense fallbacks during hydration, even when the initial call was wrapped in `startTransition`.
+
+This limitation will be resolved once [AsyncContext](https://github.com/tc39/proposal-async-context) becomes available, but for now the workaround is to wrap post-`await` state updates in another `startTransition`.
+
 ### How Transitions Work During Hydration
 
 `startTransition` is effective during **both hydration and post-hydration phases**. During the hydration phase:
 
-- Transitions successfully prevent Suspense fallbacks for state updates
+- Transitions successfully prevent Suspense fallbacks for synchronous state updates
 - React can safely defer updates while maintaining consistency
-- Transitions behave the same way during hydration, regardless of whether they are synchronous or use the async keyword
-- The only exception is when rendering `isPending` state, which breaks the optimization
+- The exceptions are async state updates after `await` and rendering `isPending` state, which break the optimization
 
 ## 📊 Complete Behavior Matrix
 
-| Update Type                            | Behavior                  | Notes                                                                                                                                               |
-| -------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useState` (**new** value)             | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350)) |
-| `useState` (**same** value)            | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                     |
-| `useReducer` (**new** value)           | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350)) |
-| `useReducer` (**same** value)          | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                     |
-| `startTransition` (sync)               | ✅ **Prevents fallbacks** | Transitions work effectively during hydration and beyond                                                                                            |
-| `startTransition` (async)              | ✅ **Prevents fallbacks** | Identical behavior to sync transitions                                                                                                              |
-| `startTransition` + `isPending` render | 💣 **Still triggers**     | Rendering isPending state breaks transition optimization                                                                                            |
-| `useSyncExternalStore`                 | 💣 **Always triggers**    | Cannot benefit from transitions at any phase ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                           |
+| Update Type                                                 | Behavior                  | Notes                                                                                                                                                                         |
+| ----------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useState` (**new** value)                                  | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350))                           |
+| `useState` (**same** value)                                 | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                                               |
+| `useReducer` (**new** value)                                | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350))                           |
+| `useReducer` (**same** value)                               | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                                               |
+| `startTransition` (sync)                                    | ✅ **Prevents fallbacks** | Transitions work effectively during hydration and beyond                                                                                                                      |
+| `startTransition` (async - pre-await)                       | ✅ **Prevents fallbacks** | State updates before await maintain transition context                                                                                                                        |
+| `startTransition` (async - post-await)                      | 💣 **Triggers fallback**  | React loses transition context after await ([See React docs](https://react.dev/reference/react/useTransition#react-doesnt-treat-my-state-update-after-await-as-a-transition)) |
+| `startTransition` (correctly wrapped async - direct import) | ✅ **Prevents fallbacks** | Nested startTransition from direct import preserves context during hydration                                                                                                  |
+| `startTransition` (correctly wrapped async - useTransition) | 💣 **Still triggers**     | Nested startTransition from useTransition hook still triggers fallbacks during hydration                                                                                      |
+| `startTransition` + `isPending` render                      | 💣 **Still triggers**     | Rendering isPending state breaks transition optimization                                                                                                                      |
+| `useSyncExternalStore`                                      | 💣 **Always triggers**    | Cannot benefit from transitions at any phase ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                                                     |
 
 ## 🚀 Practical Implications
 
@@ -203,11 +289,11 @@ expect(screen.findByText("Suspended")).resolves.toBeInTheDocument();
 
 ## 🔑 Key Takeaways
 
-1. **Transitions effectively prevent Suspense fallbacks during hydration** - `startTransition` works as intended in both phases
-2. **The isPending edge case** - rendering `isPending` state can still trigger fallbacks even within transitions
-3. **External stores have inherent limitations** - they cannot benefit from transition optimizations at any phase
-4. **React optimizes same-value updates** - built-in optimization prevents unnecessary fallbacks
-5. **Transitions work consistently** - same behavior and effectiveness during hydration and post-hydration phases
+1. **Transitions effectively prevent Suspense fallbacks during hydration** - `startTransition` works as intended for synchronous updates
+2. **The async context limitation** - React loses transition context after `await`, requiring nested `startTransition` calls
+3. **The isPending edge case** - rendering `isPending` state can still trigger fallbacks even within transitions
+4. **External stores have inherent limitations** - they cannot benefit from transition optimizations at any phase
+5. **React optimizes same-value updates** - built-in optimization prevents unnecessary fallbacks
 
 ## 🧪 Try It Yourself
 

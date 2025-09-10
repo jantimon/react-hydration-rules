@@ -42,8 +42,8 @@ const NoSuspenseOnSameReducerValueComponent: React.FC = () => {
     <div>
       <button onClick={handleReturnPrevValue}>Counter: {counter}</button>
 
-      <Suspense fallback={<p>Suspended</p>}>
-        <p>Not Suspended</p>
+      <Suspense fallback={<p>Suspense Boundary Fallback</p>}>
+        <p>Suspense Boundary Content</p>
         <LazyChild />
       </Suspense>
     </div>
@@ -63,7 +63,9 @@ test("reducer returning previous value does NOT trigger Suspense fallback during
   // Verify initial SSR state - counter button should be rendered
   expect(screen.getByRole("button")).toHaveTextContent("Counter: 0");
   // SSR should show non-suspended content initially
-  expect(await screen.findAllByText("Not Suspended")).toHaveLength(1);
+  expect(await screen.findAllByText("Suspense Boundary Content")).toHaveLength(
+    1,
+  );
 
   // Step 2: Click button to dispatch action that returns previous value
   const counterButton = screen.getByRole("button");
@@ -73,8 +75,8 @@ test("reducer returning previous value does NOT trigger Suspense fallback during
   expect(counterButton).toHaveTextContent("Counter: 0");
 
   // Step 3: Verify suspense fallback is NOT triggered (should remain non-suspended)
-  expect(screen.getByText("Not Suspended")).toBeInTheDocument();
-
-  await sleep(100);
-  expect(screen.queryByText("Suspended")).not.toBeInTheDocument();
+  expect(screen.getByText("Suspense Boundary Content")).toBeInTheDocument();
+  await expect(() =>
+    screen.findByText("Suspense Boundary Fallback"),
+  ).rejects.toThrow();
 });
