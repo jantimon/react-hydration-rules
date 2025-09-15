@@ -118,6 +118,7 @@ const handleClick = () => {
 const [count, setCount] = useState(0);
 const deferredCount = useDeferredValue(count);
 const handleClick = () => setCount((prev) => prev + 1); // 💣 Triggers fallback even when rendering deferred value
+return <p onClick={handleClick}>Counter: {deferredCount}</p>;
 ```
 
 ### ✅ What Doesn't Trigger Suspense Fallbacks
