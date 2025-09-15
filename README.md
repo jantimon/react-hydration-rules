@@ -270,6 +270,7 @@ This limitation will be resolved once [AsyncContext](https://github.com/tc39/pro
 | `startTransition` (correctly wrapped async - direct import) | ✅ **Prevents fallbacks** | Nested startTransition from direct import preserves context during hydration                                                                                                  |
 | `startTransition` (correctly wrapped async - useTransition) | 💣 **Still triggers**     | Nested startTransition from useTransition hook still triggers fallbacks during hydration                                                                                      |
 | `startTransition` + `isPending` render                      | 💣 **Still triggers**     | Rendering isPending state breaks transition optimization                                                                                                                      |
+| `useDeferredValue`                                          | 💣 **Triggers fallback**  | Deferred values don't prevent fallbacks during hydration - state change still triggers Suspense                                                                              |
 | `useSyncExternalStore`                                      | 💣 **Always triggers**    | Cannot benefit from transitions at any phase ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                                                     |
 
 ## 🚀 Practical Implications
