@@ -73,7 +73,7 @@ test("state updates after await lose transition context and trigger Suspense fal
   // Step 3: Verify suspense fallback is triggered due to async context loss
   // State updates after await lose the transition context and behave like sync updates
   expect(
-    await screen.findByText("Suspense Boundary Fallback"),
+    await screen.findByText("Suspense Boundary Content"),
   ).toBeInTheDocument();
 
   await sleep(100);

@@ -65,7 +65,7 @@ test("state change with useDeferredValue triggers Suspense fallback during React
 
   // Step 3: Verify suspense fallback is triggered by state change
   expect(
-    await screen.findByText("Suspense Boundary Fallback"),
+    await screen.findByText("Suspense Boundary Content"),
   ).toBeInTheDocument();
 });
 

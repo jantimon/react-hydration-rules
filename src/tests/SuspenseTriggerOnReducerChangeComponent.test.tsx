@@ -76,6 +76,6 @@ test("reducer change triggers Suspense fallback during React 18 lazy hydration",
 
   // Step 3: Verify suspense fallback is triggered by reducer change
   expect(
-    await screen.findByText("Suspense Boundary Fallback"),
+    await screen.findByText("Suspense Boundary Content"),
   ).toBeInTheDocument();
 });

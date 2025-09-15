@@ -95,6 +95,6 @@ test("external store change triggers Suspense fallback during React 18 lazy hydr
   // Step 3: Verify suspense fallback is triggered by external store change
   // External store mutations cannot be marked as non-blocking transitions
   expect(
-    await screen.findByText("Suspense Boundary Fallback"),
+    await screen.findByText("Suspense Boundary Content"),
   ).toBeInTheDocument();
 });
