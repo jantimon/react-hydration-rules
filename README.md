@@ -122,6 +122,7 @@ return <>
   <p onClick={handleClick}>Counter: {deferredCount}</p>
   <ChildWithSuspense />
 </>;
+```
 
 ### ✅ What Doesn't Trigger Suspense Fallbacks
 
