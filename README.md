@@ -114,12 +114,14 @@ const handleClick = () => {
 
 **Deferred Value Updates** ([test](src/tests/SuspenseTriggerOnDeferredValueComponent.test.tsx))
 
-```jsx
+````jsx
 const [count, setCount] = useState(0);
 const deferredCount = useDeferredValue(count);
 const handleClick = () => setCount((prev) => prev + 1); // 💣 Triggers fallback even when rendering deferred value
-return <p onClick={handleClick}>Counter: {deferredCount}</p>;
-```
+return <>
+  <p onClick={handleClick}>Counter: {deferredCount}</p>
+  <ChildWithSuspense />
+</>;
 
 ### ✅ What Doesn't Trigger Suspense Fallbacks
 
@@ -129,7 +131,7 @@ React's built-in optimizations prevent fallbacks when updates don't actually cha
 
 ```jsx
 const handleClick = () => setCount((prev) => prev); // ✅ React optimizes this away
-```
+````
 
 **Same-Value Reducer Updates** ([test](src/tests/NoSuspenseOnSameReducerValueComponent.test.tsx))
 

@@ -18,6 +18,13 @@ let LazyChild = lazy(() =>
   })),
 );
 
+const ChildWithSuspense = () => (
+  <Suspense fallback={<p>Suspense Boundary Fallback</p>}>
+    <p>Suspense Boundary Content</p>
+    <LazyChild />
+  </Suspense>
+);
+
 const SuspenseTriggerOnDeferredValueComponent: React.FC = () => {
   const [counter, setCounter] = useState(0);
   const deferredCounter = useDeferredValue(counter);
@@ -31,11 +38,7 @@ const SuspenseTriggerOnDeferredValueComponent: React.FC = () => {
       <button onClick={handleIncrementCounter}>
         Counter: {deferredCounter}
       </button>
-
-      <Suspense fallback={<p>Suspense Boundary Fallback</p>}>
-        <p>Suspense Boundary Content</p>
-        <LazyChild />
-      </Suspense>
+      <ChildWithSuspense />
     </div>
   );
 };
