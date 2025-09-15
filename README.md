@@ -112,6 +112,14 @@ const handleClick = () => {
 };
 ```
 
+**Deferred Value Updates** ([test](src/tests/SuspenseTriggerOnDeferredValueComponent.test.tsx))
+
+```jsx
+const [count, setCount] = useState(0);
+const deferredCount = useDeferredValue(count);
+const handleClick = () => setCount((prev) => prev + 1); // 💣 Triggers fallback even when rendering deferred value
+```
+
 ### ✅ What Doesn't Trigger Suspense Fallbacks
 
 React's built-in optimizations prevent fallbacks when updates don't actually change state, and transitions effectively prevent fallbacks during hydration.
