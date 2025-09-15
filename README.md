@@ -114,7 +114,7 @@ const handleClick = () => {
 
 **Deferred Value Updates** ([test](src/tests/SuspenseTriggerOnDeferredValueComponent.test.tsx))
 
-````jsx
+```jsx
 const [count, setCount] = useState(0);
 const deferredCount = useDeferredValue(count);
 const handleClick = () => setCount((prev) => prev + 1); // 💣 Triggers fallback even when rendering deferred value
