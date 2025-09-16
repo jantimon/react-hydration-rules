@@ -70,6 +70,6 @@ test("rendering isPending state triggers Suspense fallback even within startTran
   // Step 3: Verify suspense fallback is triggered despite startTransition
   // This happens because rendering isPending state breaks the transition optimization
   expect(
-    await screen.findByText("Suspense Boundary Fallback"),
+    await screen.findByText("Suspense Boundary Content"),
   ).toBeInTheDocument();
 });

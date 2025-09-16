@@ -59,7 +59,7 @@ test("state change triggers Suspense fallback during React 18 lazy hydration", a
 
   // Step 3: Verify suspense fallback is triggered by state change
   expect(
-    await screen.findByText("Suspense Boundary Fallback"),
+    await screen.findByText("Suspense Boundary Content"),
   ).toBeInTheDocument();
 });
 

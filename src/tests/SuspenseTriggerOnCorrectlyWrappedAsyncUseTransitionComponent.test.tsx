@@ -70,6 +70,6 @@ test("correctly wrapped async useTransition still triggers Suspense fallback dur
   // Step 3: Even with proper wrapping, useTransition's startTransition still triggers fallbacks
   // There's a difference between direct startTransition import vs useTransition hook during hydration
   expect(
-    await screen.findByText("Suspense Boundary Fallback"),
+    await screen.findByText("Suspense Boundary Content"),
   ).toBeInTheDocument();
 });
