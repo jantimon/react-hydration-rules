@@ -118,10 +118,12 @@ const handleClick = () => {
 const [count, setCount] = useState(0);
 const deferredCount = useDeferredValue(count);
 const handleClick = () => setCount((prev) => prev + 1); // 💣 Triggers fallback even when rendering deferred value
-return <>
-  <p onClick={handleClick}>Counter: {deferredCount}</p>
-  <ChildWithSuspense />
-</>;
+return (
+  <>
+    <p onClick={handleClick}>Counter: {deferredCount}</p>
+    <ChildWithSuspense />
+  </>
+);
 ```
 
 ### ✅ What Doesn't Trigger Suspense Fallbacks
@@ -132,7 +134,7 @@ React's built-in optimizations prevent fallbacks when updates don't actually cha
 
 ```jsx
 const handleClick = () => setCount((prev) => prev); // ✅ React optimizes this away
-````
+```
 
 **Same-Value Reducer Updates** ([test](src/tests/NoSuspenseOnSameReducerValueComponent.test.tsx))
 
@@ -176,6 +178,23 @@ const handleClick = () => {
     });
   });
 };
+```
+
+**Deferred Value Updates with Memoization** ([test](src/tests/NoSuspenseOnDeferredValueWithMemo.test.tsx))
+
+```jsx
+const ChildWithSuspenseWithMemo = memo(ChildWithSuspense);
+// ...
+const [count, setCount] = useState(0);
+const deferredCount = useDeferredValue(count);
+const handleClick = () => setCount((prev) => prev + 1);
+// ✅ Prevents fallback during hydration (☝️ requires React.memo)
+return (
+  <>
+    <p onClick={handleClick}>Counter: {deferredCount}</p>
+    <ChildWithSuspenseWithMemo />
+  </>
+);
 ```
 
 ### ⚠️ Transition Edge Cases
@@ -275,6 +294,7 @@ This limitation will be resolved once [AsyncContext](https://github.com/tc39/pro
 | `startTransition`<br>(correctly wrapped async - useTransition) | 💣 **Still triggers**     | Nested startTransition from useTransition hook still triggers fallbacks during hydration                                                                                      | [test](src/tests/SuspenseTriggerOnCorrectlyWrappedAsyncUseTransitionComponent.test.tsx) |
 | `startTransition` + `isPending` render                         | 💣 **Still triggers**     | Rendering isPending state breaks transition optimization                                                                                                                      | [test](src/tests/SuspenseTriggerOnIsPendingRenderComponent.test.tsx)                    |
 | `useDeferredValue`                                             | 💣 **Triggers fallback**  | Deferred values don't prevent fallbacks during hydration - state change still triggers Suspense                                                                               | [test](src/tests/SuspenseTriggerOnDeferredValueComponent.test.tsx)                      |
+| `useDeferredValue` + `React.memo`                              | ✅ **Never triggers**     | Memoized components prevent re-renders during deferred updates ([See React docs pitfall](https://react.dev/reference/react/useDeferredValue#pitfall))                         | [test](src/tests/NoSuspenseOnDeferredValueWithMemo.test.tsx)                            |
 | `useSyncExternalStore`                                         | 💣 **Always triggers**    | Cannot benefit from transitions at any phase ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                                                     | [test](src/tests/SuspenseTriggerOnExternalStoreComponent.test.tsx)                      |
 
 ## 🚀 Practical Implications
