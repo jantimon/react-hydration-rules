@@ -128,7 +128,8 @@ export default async function ssrTemplate(
 <body>
     <div id="root">${html}</div>
 
-    <a href="https://github.com/jantimon/react-hydration-rules/tree/main/src/${templateParameters.htmlWebpackPlugin?.options?.chunks?.[0]}.tsx">Example Source Code</a>
+    <script src="https://unpkg.com/github-corner-element"></script>
+    <github-corner title="Example Source Code" href="https://github.com/jantimon/react-hydration-rules/tree/main/src/${templateParameters.htmlWebpackPlugin?.options?.chunks?.[0]}.tsx"></github-corner>
 </body>
 </html>`;
 
