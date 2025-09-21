@@ -1,1 +1,10 @@
 node_modules
+dist
+
+# Test results
+test-results/
+playwright-report/
+
+# Logs
+*.log
+npm-debug.log*
