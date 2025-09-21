@@ -6,12 +6,12 @@ I spent way too much time debugging these behaviors in production, so I built th
 
 ## 🎯 The Hydration Challenge
 
-When React hydrates server-rendered content, it needs to make components interactive while keeping the UI consistent. React 18 [introduced **selective hydration** and **concurrent rendering**](https://github.com/reactwg/react-18/discussions/37) to improve this process, but there are some tricky parts worth understanding
+When React hydrates server-rendered content, it needs to make components interactive while keeping the UI consistent. React 19 introduced improvements to [selective hydration and concurrent rendering](https://github.com/reactwg/react-18/discussions/37), but there are some tricky parts worth understanding.
 
 ### Key Insight: Synchronous State Changes Overrule Suspense During Hydration
 
 > [!CAUTION]
-> **State updates during hydration always break Suspense** -> your server-rendered content will flash to loading spinners. You can prevent this by wrapping these state changes with `startTransition`
+> **State updates during hydration always break Suspense** → your server-rendered content will flash to loading spinners. You can prevent this by wrapping these state changes with `startTransition`
 
 ## 🚀 Quick Solutions (90% of cases)
 
@@ -96,59 +96,59 @@ flowchart TD
 
 ## 📊 Behavior Matrix Overview
 
-| Update Type                                                    | Behavior                  | Notes                                                                                                                                                                         | Links                                                                                                                                                 |
-| -------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useState`<br>(**new** value)                                  | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350))                           | [test](src/tests/SuspenseTriggerOnStateChangeComponent.test.tsx)                                                                                      |
-| `useState`<br>(**same** value)                                 | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                                               | [test](src/tests/NoSuspenseOnSameStateValueComponent.test.tsx)                                                                                        |
-| `useReducer`<br>(**new** value)                                | 💣 **Triggers fallback**  | Without transition wrapper causes Suspense fallback ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350))                           | [test](src/tests/SuspenseTriggerOnReducerChangeComponent.test.tsx)                                                                                    |
-| `useReducer`<br>(**same** value)                               | ✅ **Never triggers**     | React's built-in optimization prevents fallback                                                                                                                               | [test](src/tests/NoSuspenseOnSameReducerValueComponent.test.tsx)                                                                                      |
-| `startTransition`<br>(sync)                                    | ✅ **Prevents fallbacks** | Transitions work effectively during hydration and beyond                                                                                                                      | [test](src/tests/NoSuspenseTriggerOnTransitionUpdateComponent.test.tsx)<br>[test](src/tests/NoSuspenseTriggerOnUseTransitionUpdateComponent.test.tsx) |
-| `startTransition`<br>(async - pre-await)                       | ✅ **Prevents fallbacks** | State updates before await maintain transition context                                                                                                                        | [test](src/tests/NoSuspenseTriggerOnUseTransitionUpdateComponent.test.tsx)                                                                            |
-| `startTransition`<br>(async - post-await)                      | 💣 **Triggers fallback**  | React loses transition context after await ([See React docs](https://react.dev/reference/react/useTransition#react-doesnt-treat-my-state-update-after-await-as-a-transition)) | [test](src/tests/SuspenseTriggerOnAsyncStateAfterAwaitComponent.test.tsx)                                                                             |
-| `startTransition`<br>(correctly wrapped async - direct import) | ✅ **Prevents fallbacks** | Nested startTransition from direct import preserves context during hydration                                                                                                  | [test](src/tests/NoSuspenseTriggerOnCorrectlyWrappedAsyncTransitionComponent.test.tsx)                                                                |
-| `startTransition`<br>(correctly wrapped async - useTransition) | 💣 **Still triggers**     | Nested startTransition from useTransition hook still triggers fallbacks during hydration                                                                                      | [test](src/tests/SuspenseTriggerOnCorrectlyWrappedAsyncUseTransitionComponent.test.tsx)                                                               |
-| `startTransition` + `isPending` render                         | 💣 **Still triggers**     | Rendering isPending state breaks transition optimization                                                                                                                      | [test](src/tests/SuspenseTriggerOnIsPendingRenderComponent.test.tsx)                                                                                  |
-| `useDeferredValue`                                             | 💣 **Triggers fallback**  | Deferred values don't prevent fallbacks during hydration - state change still triggers Suspense                                                                               | [test](src/tests/SuspenseTriggerOnDeferredValueComponent.test.tsx)                                                                                    |
-| `useDeferredValue` + `React.memo`                              | ✅ **Prevents fallbacks** | Memoized components prevent re-renders during deferred updates ([See React docs pitfall](https://react.dev/reference/react/useDeferredValue#pitfall))                         | [test](src/tests/NoSuspenseOnDeferredValueWithMemo.test.tsx)                                                                                          |
-| `useSyncExternalStore`                                         | 💣 **Always triggers**    | Cannot benefit from transitions at any phase ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                                                     | [test](src/tests/SuspenseTriggerOnExternalStoreComponent.test.tsx)                                                                                    |
+| Update Type                                                    | Behavior                  | React Compiler            | Notes                                                                                                                                                                                                                                        | Source Code                                                                                                              |
+| -------------------------------------------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `useState`<br>(**new** value)                                  | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | Without transition wrapper causes Suspense fallback, but React Compiler's automatic memoization prevents it ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350))                                  | [SuspenseFallbackOnStateChange.tsx](src/SuspenseFallbackOnStateChange.tsx)                                               |
+| `useState`<br>(**same** value)                                 | ✅ **Never triggers**     | N/A                       | React's built-in optimization prevents fallback                                                                                                                                                                                              | [NoSuspenseFallbackOnSameStateValue.tsx](src/NoSuspenseFallbackOnSameStateValue.tsx)                                     |
+| `useReducer`<br>(**new** value)                                | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | Without transition wrapper causes Suspense fallback, but React Compiler's automatic memoization prevents it ([React team guidance](https://github.com/facebook/react/issues/24476#issuecomment-1127800350))                                  | [SuspenseFallbackOnReducerChange.tsx](src/SuspenseFallbackOnReducerChange.tsx)                                           |
+| `useReducer`<br>(**same** value)                               | ✅ **Never triggers**     | N/A                       | React's built-in optimization prevents fallback                                                                                                                                                                                              | [NoSuspenseFallbackOnSameReducerValue.tsx](src/NoSuspenseFallbackOnSameReducerValue.tsx)                                 |
+| `startTransition`<br>(sync - direct import)                    | ✅ **Prevents fallbacks** | N/A                       | Direct import of startTransition works effectively during hydration                                                                                                                                                                          | [NoSuspenseFallbackOnTransitionUpdate.tsx](src/NoSuspenseFallbackOnTransitionUpdate.tsx)                                 |
+| `useTransition`<br>(sync - hook)                               | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | useTransition hook triggers fallbacks during hydration, but React Compiler's automatic memoization prevents it                                                                                                                               | [SuspenseFallbackOnUseTransitionUpdate.tsx](src/SuspenseFallbackOnUseTransitionUpdate.tsx)                               |
+| `startTransition`<br>(async - post-await)                      | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | React loses transition context after await, but React Compiler's automatic memoization prevents fallbacks ([See React docs](https://react.dev/reference/react/useTransition#react-doesnt-treat-my-state-update-after-await-as-a-transition)) | [SuspenseFallbackOnAsyncStateAfterAwait.tsx](src/SuspenseFallbackOnAsyncStateAfterAwait.tsx)                             |
+| `startTransition`<br>(correctly wrapped async - direct import) | ✅ **Prevents fallbacks** | N/A                       | Nested startTransition from direct import preserves context during hydration                                                                                                                                                                 | [NoSuspenseFallbackOnCorrectlyWrappedAsyncTransition.tsx](src/NoSuspenseFallbackOnCorrectlyWrappedAsyncTransition.tsx)   |
+| `startTransition`<br>(correctly wrapped async - useTransition) | 💣 **Still triggers**     | ✅ **Prevents fallbacks** | Nested startTransition from useTransition hook triggers fallbacks during hydration, but React Compiler's automatic memoization prevents it                                                                                                   | [SuspenseFallbackOnCorrectlyWrappedAsyncUseTransition.tsx](src/SuspenseFallbackOnCorrectlyWrappedAsyncUseTransition.tsx) |
+| `startTransition` + `isPending` render                         | 💣 **Still triggers**     | ✅ **Prevents fallbacks** | Rendering isPending state breaks transition optimization, but React Compiler's automatic memoization prevents fallbacks                                                                                                                      | [SuspenseFallbackOnIsPendingRender.tsx](src/SuspenseFallbackOnIsPendingRender.tsx)                                       |
+| `useDeferredValue`                                             | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | Deferred values trigger fallbacks during hydration, but React Compiler's automatic memoization prevents it                                                                                                                                   | [SuspenseFallbackOnDeferredValue.tsx](src/SuspenseFallbackOnDeferredValue.tsx)                                           |
+| `useDeferredValue` + `React.memo`                              | ✅ **Prevents fallbacks** | N/A                       | Memoized components prevent re-renders during deferred updates ([See React docs pitfall](https://react.dev/reference/react/useDeferredValue#pitfall))                                                                                        | [NoSuspenseFallbackOnDeferredValueWithMemo.tsx](src/NoSuspenseFallbackOnDeferredValueWithMemo.tsx)                       |
+| `useSyncExternalStore`                                         | 💣 **Always triggers**    | ✅ **Prevents fallbacks** | Cannot benefit from transitions at any phase, but React Compiler's automatic memoization still prevents fallbacks ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                                               | [SuspenseFallbackOnExternalStore.tsx](src/SuspenseFallbackOnExternalStore.tsx)                                           |
 
 ### 💣 What Triggers Suspense Fallbacks
 
 Even if the server includes the full HTML for a **lazy** component, certain patterns during hydration will still trigger Suspense fallbacks and remove the existing content.
 
-**Regular State Updates** ([test](src/tests/SuspenseTriggerOnStateChangeComponent.test.tsx))
+**Regular State Updates** ([SuspenseFallbackOnStateChange.tsx](src/SuspenseFallbackOnStateChange.tsx))
 
 ```jsx
 const [count, setCount] = useState(0);
 const handleClick = () => setCount((prev) => prev + 1); // 💣 Triggers fallback
 ```
 
-**Reducer Updates** ([test](src/tests/SuspenseTriggerOnReducerChangeComponent.test.tsx))
+**Reducer Updates** ([SuspenseFallbackOnReducerChange.tsx](src/SuspenseFallbackOnReducerChange.tsx))
 
 ```jsx
 const [state, dispatch] = useReducer(reducer, initialState);
 const handleClick = () => dispatch({ type: "increment" }); // 💣 Triggers fallback
 ```
 
-**External Store Changes** ([test](src/tests/SuspenseTriggerOnExternalStoreComponent.test.tsx))
+**External Store Changes** ([SuspenseFallbackOnExternalStore.tsx](src/SuspenseFallbackOnExternalStore.tsx))
 
 ```jsx
 const value = useSyncExternalStore(subscribe, getSnapshot);
 // Any external store mutation 💣 Always triggers fallback
 ```
 
-**Async State Updates After await** ([test](src/tests/SuspenseTriggerOnAsyncStateAfterAwaitComponent.test.tsx))
+**useTransition Hook Updates** ([SuspenseFallbackOnUseTransitionUpdate.tsx](src/SuspenseFallbackOnUseTransitionUpdate.tsx))
 
 ```jsx
+const [, startTransition] = useTransition();
 const handleClick = () => {
-  startTransition(async () => {
-    await someAsyncOperation();
-    setCount((prev) => prev + 1); // 💣 Loses transition context after await
+  startTransition(() => {
+    setCount((prev) => prev + 1); // 💣 Still triggers fallback during hydration with useTransition hook
   });
 };
 ```
 
-**Correctly Wrapped Async useTransition** ([test](src/tests/SuspenseTriggerOnCorrectlyWrappedAsyncUseTransitionComponent.test.tsx))
+**Correctly Wrapped Async useTransition** ([SuspenseFallbackOnCorrectlyWrappedAsyncUseTransition.tsx](src/SuspenseFallbackOnCorrectlyWrappedAsyncUseTransition.tsx))
 
 ```jsx
 const [, startTransition] = useTransition();
@@ -162,7 +162,18 @@ const handleClick = () => {
 };
 ```
 
-**Deferred Value Updates** ([test](src/tests/SuspenseTriggerOnDeferredValueComponent.test.tsx))
+**Async State Updates After await** ([SuspenseFallbackOnAsyncStateAfterAwait.tsx](src/SuspenseFallbackOnAsyncStateAfterAwait.tsx))
+
+```jsx
+const handleClick = () => {
+  startTransition(async () => {
+    await someAsyncOperation();
+    setCount((prev) => prev + 1); // 💣 Loses transition context after await
+  });
+};
+```
+
+**Deferred Value Updates** ([SuspenseFallbackOnDeferredValue.tsx](src/SuspenseFallbackOnDeferredValue.tsx))
 
 ```jsx
 const [count, setCount] = useState(0);
@@ -180,13 +191,13 @@ return (
 
 React's built-in optimizations prevent fallbacks when updates don't actually change state, and transitions effectively prevent fallbacks during hydration.
 
-**Same-Value State Updates** ([test](src/tests/NoSuspenseOnSameStateValueComponent.test.tsx))
+**Same-Value State Updates** ([NoSuspenseFallbackOnSameStateValue.tsx](src/NoSuspenseFallbackOnSameStateValue.tsx))
 
 ```jsx
 const handleClick = () => setCount((prev) => prev); // ✅ React optimizes this away
 ```
 
-**Same-Value Reducer Updates** ([test](src/tests/NoSuspenseOnSameReducerValueComponent.test.tsx))
+**Same-Value Reducer Updates** ([NoSuspenseFallbackOnSameReducerValue.tsx](src/NoSuspenseFallbackOnSameReducerValue.tsx))
 
 ```jsx
 const reducer = (state, action) => {
@@ -194,7 +205,7 @@ const reducer = (state, action) => {
 }
 ```
 
-**Transition-Wrapped Updates** ([test](src/tests/NoSuspenseTriggerOnTransitionUpdateComponent.test.tsx))
+**Transition-Wrapped Updates** ([NoSuspenseFallbackOnTransitionUpdate.tsx](src/NoSuspenseFallbackOnTransitionUpdate.tsx))
 
 ```jsx
 const handleClick = () => {
@@ -204,10 +215,10 @@ const handleClick = () => {
 };
 ```
 
-**useTransition Hook Updates** ([test](src/tests/NoSuspenseTriggerOnUseTransitionUpdateComponent.test.tsx))
+**startTransition Direct Import Updates** ([NoSuspenseFallbackOnTransitionUpdate.tsx](src/NoSuspenseFallbackOnTransitionUpdate.tsx))
 
 ```jsx
-const [, startTransition] = useTransition();
+import { startTransition } from "react";
 const handleClick = () => {
   startTransition(() => {
     setCount((prev) => prev + 1); // ✅ Prevents fallback during hydration
@@ -215,7 +226,7 @@ const handleClick = () => {
 };
 ```
 
-**Correctly Wrapped Async startTransition (Direct Import)** ([test](src/tests/NoSuspenseTriggerOnCorrectlyWrappedAsyncTransitionComponent.test.tsx))
+**Correctly Wrapped Async startTransition (Direct Import)** ([NoSuspenseFallbackOnCorrectlyWrappedAsyncTransition.tsx](src/NoSuspenseFallbackOnCorrectlyWrappedAsyncTransition.tsx))
 
 ```jsx
 import { startTransition } from "react";
@@ -230,7 +241,7 @@ const handleClick = () => {
 };
 ```
 
-**Deferred Value Updates with Memoization** ([test](src/tests/NoSuspenseOnDeferredValueWithMemo.test.tsx))
+**Deferred Value Updates with Memoization** ([NoSuspenseFallbackOnDeferredValueWithMemo.tsx](src/NoSuspenseFallbackOnDeferredValueWithMemo.tsx))
 
 ```jsx
 const ChildWithSuspenseWithMemo = memo(ChildWithSuspense);
@@ -289,7 +300,7 @@ The nested `startTransition` pattern works during hydration only when using the 
 
 Even when state changes are properly wrapped in transitions, rendering the `isPending` state can still trigger fallbacks during hydration.
 
-**Rendering Transition Pending State** ([test](src/tests/SuspenseTriggerOnIsPendingRenderComponent.test.tsx))
+**Rendering Transition Pending State** ([SuspenseFallbackOnIsPendingRender.tsx](src/SuspenseFallbackOnIsPendingRender.tsx))
 
 ```jsx
 const [isPending, startTransition] = useTransition();
@@ -329,6 +340,12 @@ This limitation will be resolved once [AsyncContext](https://github.com/tc39/pro
 - React can safely defer updates while maintaining consistency
 - The exceptions are async state updates after `await` and rendering `isPending` state, which break the optimization
 
+### React Compiler and Automatic Memoization
+
+**🎉 React Compiler automatic memoization optimizations completely solves hydration Suspense issues** 
+
+Even without **any** `startTransition` wrapping React Compiler's automatic memoization prevents fallbacks in all cases!
+
 ## 🚀 Practical Implications
 
 ### For User Experience
@@ -348,36 +365,48 @@ This limitation will be resolved once [AsyncContext](https://github.com/tc39/pro
 
 ## 🛠️ Testing Approach
 
-All of this has been thoroughly tested using:
+All behaviors are thoroughly tested using **E2E Playwright tests** with:
 
-- **Server-Side Rendering**: Real SSR with `renderToPipeableStream`
+- **Real SSR**: Using `renderToPipeableStream` with Rspack build process
 - **Client Hydration**: Actual hydration with `hydrateRoot`
 - **Lazy Components**: Artificial delays to simulate real-world loading
-- **Semantic Testing**: Following Testing Library best practices
+- **Browser Testing**: Real browser interactions and timing
 
 ### Test Structure
 
 ```typescript
-// 1. Render on server
-await renderAndHydrate(<Component />);
+// 1. Build components with SSR
+npm run build
 
-// 2. Wait for hydration
-await waitFor(() => screen.getByRole("button"));
+// 2. Navigate to pre-rendered HTML
+await page.goto(`file://${process.cwd()}/dist/${componentName}/index.html`);
 
-// 3. Trigger state change
-fireEvent.click(screen.getByRole("button"));
+// 3. Wait for hydration
+await page.waitForLoadState('networkidle');
 
-// 4. Verify Suspense behavior
-expect(screen.findByText("Suspended")).resolves.toBeInTheDocument();
+// 4. Trigger state change
+await page.locator('button').first().click();
+
+// 5. Verify Suspense behavior
+const hasNoFallback = await page.locator('text=Suspense Boundary Content').isVisible();
+expect(hasNoFallback).toBe(true);
 ```
+
+## 🎯 Testing Suspense Behavior
+
+1. **Build the project**: `npm run build`
+2. **Open any example**: Navigate to `dist/[ExampleName]/index.html` in your browser
+3. **Interact with the UI**: Click buttons to trigger state changes and observe Suspense behavior
+4. **Observe the fallback**: Watch for "Suspense Boundary Fallback" vs "Suspense Boundary Content"
 
 ## 🔑 Key Takeaways
 
-1. **Transitions effectively prevent Suspense fallbacks during hydration** - `startTransition` works as intended for synchronous updates
-2. **The async context limitation** - React loses transition context after `await`, requiring nested `startTransition` calls
-3. **The isPending edge case** - rendering `isPending` state can still trigger fallbacks even within transitions
-4. **External stores have inherent limitations** - they cannot benefit from transition optimizations at any phase
+1. **🎉 React Compiler is the ultimate solution** - automatic memoization completely prevents ALL Suspense fallbacks during hydration, including previously unsolvable cases like `useSyncExternalStore` and `isPending` rendering
+2. **Transitions effectively prevent Suspense fallbacks during hydration** - `startTransition` works as intended for synchronous updates (but React Compiler makes this manual approach unnecessary)
+3. **The async context limitation is solved by React Compiler** - React loses transition context after `await`, but automatic memoization prevents the fallbacks regardless
+4. **External stores are fixed by React Compiler** - while they cannot benefit from transitions, automatic memoization prevents their fallbacks
 5. **React optimizes same-value updates** - built-in optimization prevents unnecessary fallbacks
+6. **React Compiler fixes hydration issues** - no more manual `startTransition` wrapping needed to prevent server-rendered content discarding
 
 ## 🧪 Try It Yourself
 
@@ -385,7 +414,7 @@ expect(screen.findByText("Suspended")).resolves.toBeInTheDocument();
 
 Don't trust my word? Good - you shouldn't. Every behavior I've documented here comes from actual tests you can run yourself.
 
-Just clone this repo and run `npm test` to see all these hydration quirks in action. The tests use real SSR with `renderToPipeableStream` and actual hydration with `hydrateRoot` - no mocks or shortcuts.
+Just clone this repo and run `npm test` to see all these hydration quirks in action. The tests use real SSR with `renderToPipeableStream` and actual hydration with `hydrateRoot` in real browsers - no mocks or shortcuts.
 
 I wrote these tests because I was debugging some gnarly hydration issues in production and couldn't find clear documentation anywhere. Turns out React's hydration behavior has some pretty specific rules that aren't obvious until you hit them.
 
