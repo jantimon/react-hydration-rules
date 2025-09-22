@@ -3,7 +3,7 @@ import * as glob from "fast-glob";
 
 // Auto-discover components using fast-glob
 const allComponents = glob
-  .sync("src/*.tsx", { ignore: ["src/fixtures/**"]})
+  .sync("src/*.tsx", { ignore: ["src/fixtures/**"] })
   .map((path) => path.replace("src/", "").replace(".tsx", ""));
 
 const noSuspenseComponents = allComponents.filter((name) =>
