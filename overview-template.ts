@@ -361,7 +361,7 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
         </footer>
 
         <script src="https://unpkg.com/github-corner-element"></script>
-        <github-corner title="Example Source Code" href="https://github.com/jantimon/react-hydration-rules/" style="position:fixed;right:0;top:0"></github-corner>
+        <github-corner title="Github Repository" href="https://github.com/jantimon/react-hydration-rules/" style="position:fixed;right:0;top:0"></github-corner>
     </div>
 </body>
 </html>`;
