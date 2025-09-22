@@ -421,12 +421,11 @@ expect(hasNoFallback).toBe(true);
 
 ## 🔑 Key Takeaways
 
-1. **🎉 React Compiler is the ultimate solution** - automatic memoization completely prevents ALL Suspense fallbacks during hydration, including previously unsolvable cases like `useSyncExternalStore` and `isPending` rendering
-2. **Transitions effectively prevent Suspense fallbacks during hydration** - `startTransition` works as intended for synchronous updates (but React Compiler makes this manual approach unnecessary)
-3. **The async context limitation is solved by React Compiler** - React loses transition context after `await`, but automatic memoization prevents the fallbacks regardless
-4. **External stores are fixed by React Compiler** - while they cannot benefit from transitions, automatic memoization prevents their fallbacks
-5. **React optimizes same-value updates** - built-in optimization prevents unnecessary fallbacks
-6. **React Compiler fixes hydration issues** - no more manual `startTransition` wrapping needed to prevent server-rendered content discarding
+1. **Transitions effectively prevent Suspense fallbacks during hydration** - `startTransition` works as intended for synchronous updates (but React Compiler makes this manual approach unnecessary)
+2. **The async context limitation is solved by React Compiler** - React loses transition context after `await`, but automatic memoization prevents the fallbacks regardless
+3. **External stores are fixed by React Compiler** - while they cannot benefit from transitions, automatic memoization prevents their fallbacks
+4. **React optimizes same-value updates** - built-in optimization prevents unnecessary fallbacks
+5. **React Compiler fixes hydration issues** - no more manual `startTransition` wrapping needed to prevent server-rendered content discarding
 
 ## 🧪 Try It Yourself
 
