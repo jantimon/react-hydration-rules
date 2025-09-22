@@ -353,6 +353,11 @@ This limitation will be resolved once [AsyncContext](https://github.com/tc39/pro
 
 Even without **any** `startTransition` wrapping React Compiler's automatic memoization prevents fallbacks in all cases!
 
+Here you can see that the same [example](src/SuspenseFallbackOnStateChange.tsx) with react-compiler does **not** trigger the fallback:
+![useState vs useState react-compiler](https://github.com/user-attachments/assets/629bf2d8-2cf7-49e2-b811-8f8c73dac2f6)
+
+See for yourself directly in your browser: [default](https://jantimon.github.io/react-hydration-rules/SuspenseFallbackOnStateChange/index.html) vs [react-compiler](https://jantimon.github.io/react-hydration-rules/ReactCompilerStateChange/index.html)
+
 ## 🚀 Practical Implications
 
 ### For User Experience
