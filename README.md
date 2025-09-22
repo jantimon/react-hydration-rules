@@ -4,6 +4,9 @@ Ever wonder why your perfectly server-rendered content suddenly flashes to a loa
 
 I spent way too much time debugging these behaviors in production, so I built this test suite to document exactly when and why Suspense fallbacks trigger during hydration. Some of the patterns might surprise you.
 
+> [!WARNING] 
+> Error: A component suspended while responding to synchronous input. This will cause the UI to be replaced with a loading indicator. To fix, updates that suspend should be wrapped with startTransition.
+
 ## 🎯 The Hydration Challenge
 
 When React hydrates server-rendered content, it needs to make components interactive while keeping the UI consistent. React 19 introduced improvements to [selective hydration and concurrent rendering](https://github.com/reactwg/react-18/discussions/37), but there are some tricky parts worth understanding.
@@ -42,6 +45,8 @@ When React hydrates server-rendered content, it needs to make components interac
    const value = useSyncExternalStore(subscribe, getSnapshot);
    // Any mutation will trigger fallback - consider alternatives
    ```
+
+**Update**: react-compiler seems completely to prevent ALL Suspense fallbacks during hydration
 
 **Need the full details?** Just read on
 
@@ -114,7 +119,9 @@ flowchart TD
 
 ### 💣 What Triggers Suspense Fallbacks
 
-Even if the server includes the full HTML for a **lazy** component, certain patterns during hydration will still trigger Suspense fallbacks and remove the existing content.
+Even if the server includes the full HTML for a **lazy** component, certain patterns during hydration will still trigger Suspense fallbacks and remove the existing content
+
+![useTransition vs startTransition](https://github.com/user-attachments/assets/b6d10cd0-71aa-425f-aedf-55942de2b353)
 
 **Regular State Updates** ([SuspenseFallbackOnStateChange.tsx](src/SuspenseFallbackOnStateChange.tsx))
 
