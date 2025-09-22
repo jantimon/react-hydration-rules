@@ -121,7 +121,9 @@ flowchart TD
 
 Even if the server includes the full HTML for a **lazy** component, certain patterns during hydration will still trigger Suspense fallbacks and remove the existing content
 
-![useTransition vs startTransition](https://github.com/user-attachments/assets/b6d10cd0-71aa-425f-aedf-55942de2b353)
+![useTransition vs startTransition](https://github.com/user-attachments/assets/b6d10cd0-71aa-425f-aedf-55942de2b353)  
+See for yourself directly in your browser: [useTransition](https://jantimon.github.io/react-hydration-rules/SuspenseFallbackOnUseTransitionUpdate/index.html) vs [startTransition](https://jantimon.github.io/react-hydration-rules/NoSuspenseFallbackOnTransitionUpdate/index.html)
+
 
 **Regular State Updates** ([SuspenseFallbackOnStateChange.tsx](src/SuspenseFallbackOnStateChange.tsx))
 
