@@ -359,6 +359,9 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
             <p>All demos use real SSR with <code>renderToPipeableStream</code> and actual hydration with <code>hydrateRoot</code>.</p>
             <p>Click any demo to interact with the components and observe Suspense behavior during hydration.</p>
         </footer>
+
+        <script src="https://unpkg.com/github-corner-element"></script>
+        <github-corner title="Example Source Code" href="https://github.com/jantimon/react-hydration-rules/" style="position:fixed;right:0;top:0"></github-corner>
     </div>
 </body>
 </html>`;
