@@ -39,11 +39,12 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            font-family: 'Optimistic Display', -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #f7f7f7;
+            background: #23272f;
             min-height: 100vh;
+            margin: 0;
         }
 
         .container {
@@ -53,121 +54,136 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 3rem;
-            color: white;
+            margin-bottom: 4rem;
         }
 
         .header h1 {
-            font-size: 2.5rem;
+            font-size: 3rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 1rem;
+            color: #f7f7f7;
+            letter-spacing: -0.025em;
         }
 
         .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
+            font-size: 1.125rem;
+            color: #99a1b3;
+            max-width: 700px;
+            line-height: 1.7;
         }
 
         .section {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-            overflow: hidden;
+            margin-bottom: 3rem;
         }
 
         .section-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e5e7eb;
-            position: relative;
+            margin-bottom: 1.5rem;
         }
 
         .section-header h2 {
             font-size: 1.5rem;
             font-weight: 600;
+            color: #f7f7f7;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
         }
 
         .section-header p {
-            color: #6b7280;
-            margin-top: 0.5rem;
-            font-size: 0.95rem;
+            color: #99a1b3;
+            font-size: 1rem;
+            line-height: 1.6;
         }
 
-        .icon {
-            width: 1.5rem;
-            height: 1.5rem;
+        .status-indicator {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
+            display: inline-block;
         }
 
-        .icon.success {
-            background: #10b981;
+        .status-indicator.success {
+            background: #087f5b;
         }
 
-        .icon.error {
-            background: #ef4444;
+        .status-indicator.error {
+            background: #e03131;
         }
 
-        .icon.compiler {
-            background: linear-gradient(45deg, #8b5cf6, #3b82f6);
+        .status-indicator.compiler {
+            background: #9333ea;
         }
 
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-rows: subgrid;
             gap: 1.5rem;
-            padding: 2rem;
         }
 
         .card {
-            border: 1px solid #e5e7eb;
+            background: #2d3748;
+            border: 1px solid #4a5568;
             border-radius: 8px;
             padding: 1.5rem;
             transition: all 0.2s ease;
-            background: #fafafa;
+            display: grid;
+            grid-template-rows: auto auto 1fr auto;
+            gap: 0.75rem;
         }
 
-        .card:hover {
-            border-color: #6366f1;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
-            transform: translateY(-2px);
+        .card:hover,
+        .card:has(a:focus-visible) {
+            border-color: #7281a8ff;
         }
 
-        .card h3 {
-            font-size: 1.1rem;
+        .card-badge {
+            grid-row: 1;
+            justify-self: start;
+        }
+
+        .card-title {
+            grid-row: 2;
+            font-size: 1.25rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #1f2937;
+            margin: 0;
+            color: #f7f7f7;
         }
 
-        .card p {
-            color: #6b7280;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-            line-height: 1.5;
+        .card-description {
+            grid-row: 3;
+            color: #a0aec0;
+            margin: 0;
+            line-height: 1.6;
+            align-self: start;
+        }
+
+        .card-button {
+            grid-row: 4;
+            align-self: end;
+            justify-self: start;
+            margin-top: 4px;
         }
 
         .card a {
             display: inline-flex;
             align-items: center;
             padding: 0.5rem 1rem;
-            background: #6366f1;
-            color: white;
+            background: transparent;
+            color: #63b3ed;
             text-decoration: none;
+            border: 1px solid #63b3ed;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             font-weight: 500;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s ease;
+            outline: none;
         }
 
-        .card a:hover {
-            background: #4f46e5;
+        .card a:hover, .card a:focus-visible {
+            background: #63b3ed;
+            color: #1a202c;
         }
 
         .card a::after {
@@ -176,39 +192,63 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
         }
 
         .badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
             padding: 0.25rem 0.75rem;
             font-size: 0.75rem;
             font-weight: 500;
-            border-radius: 9999px;
-            margin-bottom: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            width: fit-content;
         }
 
         .badge.success {
-            background: #dcfce7;
-            color: #166534;
+            background: rgba(8, 127, 91, 0.2);
+            color: #81e6d9;
+            border: 1px solid rgba(8, 127, 91, 0.3);
         }
 
         .badge.error {
-            background: #fee2e2;
-            color: #991b1b;
+            background: rgba(224, 49, 49, 0.2);
+            color: #fc8181;
+            border: 1px solid rgba(224, 49, 49, 0.3);
         }
 
         .badge.compiler {
-            background: #ede9fe;
-            color: #6d28d9;
+            background: rgba(147, 51, 234, 0.2);
+            color: #c084fc;
+            border: 1px solid rgba(147, 51, 234, 0.3);
         }
 
         .footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid #4a5568;
+            color: #99a1b3;
             text-align: center;
-            margin-top: 3rem;
-            color: white;
-            opacity: 0.8;
+        }
+
+        .footer p {
+            margin-bottom: 0.5rem;
         }
 
         .footer a {
-            color: white;
+            color: #63b3ed;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
             text-decoration: underline;
+        }
+
+        .footer code {
+            background: #1a202c;
+            border: 1px solid #4a5568;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+            font-size: 0.875em;
         }
 
         @media (max-width: 768px) {
@@ -223,11 +263,6 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
             .grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
-                padding: 1rem;
-            }
-
-            .section-header {
-                padding: 1rem 1.5rem;
             }
         }
     </style>
@@ -242,7 +277,7 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
         <section class="section">
             <div class="section-header">
                 <h2>
-                    <span class="icon success"></span>
+                    <span class="status-indicator success"></span>
                     Components that DON'T trigger Suspense fallbacks
                 </h2>
                 <p>These patterns maintain server-rendered content during hydration, preventing performance-degrading fallbacks.</p>
@@ -252,10 +287,13 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
                   .map(
                     (component) => `
                     <div class="card">
-                        <span class="badge success">✅ No Fallback</span>
-                        <h3>${component.name.replace(/([A-Z])/g, " $1").trim()}</h3>
-                        <p>${component.description}</p>
-                        <a href="./${component.name}/index.html">View Demo</a>
+                        <span class="badge success card-badge">
+                            <span class="status-indicator success"></span>
+                            No Fallback
+                        </span>
+                        <h3 class="card-title">${component.name.replace(/([A-Z])/g, " $1").trim()}</h3>
+                        <p class="card-description">${component.description}</p>
+                        <a href="./${component.name}/index.html" class="card-button">View Demo</a>
                     </div>
                 `,
                   )
@@ -266,7 +304,7 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
         <section class="section">
             <div class="section-header">
                 <h2>
-                    <span class="icon error"></span>
+                    <span class="status-indicator error"></span>
                     Components that DO trigger Suspense fallbacks
                 </h2>
                 <p>These patterns cause React to discard server-rendered content and show loading spinners, hurting performance.</p>
@@ -276,10 +314,13 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
                   .map(
                     (component) => `
                     <div class="card">
-                        <span class="badge error">💣 Triggers Fallback</span>
-                        <h3>${component.name.replace(/([A-Z])/g, " $1").trim()}</h3>
-                        <p>${component.description}</p>
-                        <a href="./${component.name}/index.html">View Demo</a>
+                        <span class="badge error card-badge">
+                            <span class="status-indicator error"></span>
+                            Triggers Fallback
+                        </span>
+                        <h3 class="card-title">${component.name.replace(/([A-Z])/g, " $1").trim()}</h3>
+                        <p class="card-description">${component.description}</p>
+                        <a href="./${component.name}/index.html" class="card-button">View Demo</a>
                     </div>
                 `,
                   )
@@ -290,20 +331,23 @@ function generateOverviewHTML(components: ComponentInfo[]): string {
         <section class="section">
             <div class="section-header">
                 <h2>
-                    <span class="icon compiler"></span>
+                    <span class="status-indicator compiler"></span>
                     React Compiler - Automatic Optimization
                 </h2>
-                <p>🎉 React Compiler's automatic memoization prevents ALL Suspense fallbacks</p>
+                <p>React Compiler's automatic memoization prevents ALL Suspense fallbacks</p>
             </div>
             <div class="grid">
                 ${reactCompilerComponents
                   .map(
                     (component) => `
                     <div class="card">
-                        <span class="badge compiler">🚀 React Compiler</span>
-                        <h3>${component.name.replace(/([A-Z])/g, " $1").trim()}</h3>
-                        <p>${component.description}</p>
-                        <a href="./${component.name}/index.html">View Demo</a>
+                        <span class="badge compiler card-badge">
+                            <span class="status-indicator compiler"></span>
+                            React Compiler
+                        </span>
+                        <h3 class="card-title">${component.name.replace(/([A-Z])/g, " $1").trim()}</h3>
+                        <p class="card-description">${component.description}</p>
+                        <a href="./${component.name}/index.html" class="card-button">View Demo</a>
                     </div>
                 `,
                   )
