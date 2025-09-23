@@ -129,7 +129,7 @@ export default async function ssrTemplate(
     <div id="root">${html}</div>
 
     <script src="https://unpkg.com/github-corner-element"></script>
-    <github-corner title="Example Source Code" href="https://github.com/jantimon/react-hydration-rules/tree/main/src/${templateParameters.htmlWebpackPlugin?.options?.chunks?.[0]}.tsx" style="position:fixed;right:0;top:0"></github-corner>
+    <github-corner title="Example Source Code" href="https://github.com/jantimon/react-hydration-rules/tree/main/src/${String(templateParameters.htmlWebpackPlugin?.options?.chunks?.[0]).replace("ReactCompilerCorrectly", "SuspenseFallbackOn")}.tsx" style="position:fixed;right:0;top:0"></github-corner>
 </body>
 </html>`;
 
