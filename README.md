@@ -41,9 +41,18 @@ When React hydrates server-rendered content, it needs to make components interac
    ```
 
 3. **External stores always trigger fallbacks** - no real workaround
+
    ```jsx
    const value = useSyncExternalStore(subscribe, getSnapshot);
    // Any mutation will trigger fallback - consider alternatives
+   ```
+
+4. **For server/client snapshot mismatches (`useIsSSR` pattern), combine `useDeferredValue` with `React.memo`**
+
+   ```jsx
+   const isSSRSync = useSyncExternalStore(emptySubscribe, returnFalse, returnTrue);
+   const isSSR = useDeferredValue(isSSRSync); // ⬅️ defers the switch ...
+   // ... but only prevents fallbacks if the Suspense subtree is wrapped in React.memo
    ```
 
 **Update**: react-compiler seems completely to prevent ALL Suspense fallbacks during hydration
@@ -121,6 +130,9 @@ flowchart TD
 | `useDeferredValue`                                             | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | Deferred values trigger fallbacks during hydration¹⁾                                                                                                                            | [code](src/SuspenseFallbackOnDeferredValue.tsx)                      |
 | `useDeferredValue` + `React.memo`                              | ✅ **Prevents fallbacks** |                           | Memoized components prevent re-renders during deferred updates ([See React docs pitfall](https://react.dev/reference/react/useDeferredValue#pitfall))                           | [code](src/NoSuspenseFallbackOnDeferredValueWithMemo.tsx)            |
 | `useSyncExternalStore`                                         | 💣 **Always triggers**    | ✅ **Prevents fallbacks** | Cannot benefit from transitions at any phase¹⁾ ([See docs](https://react.dev/reference/react/useSyncExternalStore#caveats))                                                     | [code](src/SuspenseFallbackOnExternalStore.tsx)                      |
+| `useSyncExternalStore`<br>(server/client mismatch)             | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | `useIsSSR` pattern: a differing `getServerSnapshot` forces a synchronous re-render right after hydration¹⁾ ([See kurtextrem.de](https://kurtextrem.de/posts/react-uses-hydration)) | [code](src/SuspenseFallbackOnExternalStoreMismatch.tsx)              |
+| `useSyncExternalStore`<br>+ `useDeferredValue`                 | 💣 **Still triggers**     | ✅ **Prevents fallbacks** | Deferring the value switch is not enough - the store still forces a non-concurrent render pass¹⁾                                                                                | [code](src/SuspenseFallbackOnDeferredExternalStoreMismatch.tsx)      |
+| `useSyncExternalStore`<br>+ `useDeferredValue` + `React.memo`  | ✅ **Prevents fallbacks** |                           | Memoization shields the Suspense boundary from the forced synchronous render pass                                                                                               | [code](src/NoSuspenseFallbackOnDeferredExternalStoreMismatchWithMemo.tsx) |
 
 ¹⁾ React Compiler's automatic memoization prevents fallbacks
 
@@ -150,6 +162,30 @@ const handleClick = () => dispatch({ type: "increment" }); // 💣 Triggers fall
 ```jsx
 const value = useSyncExternalStore(subscribe, getSnapshot);
 // Any external store mutation 💣 Always triggers fallback
+```
+
+**Server/Client Snapshot Mismatch** ([SuspenseFallbackOnExternalStoreMismatch.tsx](src/SuspenseFallbackOnExternalStoreMismatch.tsx))
+
+```jsx
+const emptySubscribe = () => () => {};
+const isSSR = useSyncExternalStore(
+  emptySubscribe,
+  () => false, // client snapshot
+  () => true, // server snapshot
+);
+// 💣 The mismatch forces a sync re-render right after hydration - no interaction needed
+```
+
+**Deferred Server/Client Snapshot Mismatch** ([SuspenseFallbackOnDeferredExternalStoreMismatch.tsx](src/SuspenseFallbackOnDeferredExternalStoreMismatch.tsx))
+
+```jsx
+const isSSRSync = useSyncExternalStore(
+  emptySubscribe,
+  () => false,
+  () => true,
+);
+const isSSR = useDeferredValue(isSSRSync);
+// 💣 Still triggers - useSyncExternalStore forces a non-concurrent render pass
 ```
 
 **useTransition Hook Updates** ([SuspenseFallbackOnUseTransitionUpdate.tsx](src/SuspenseFallbackOnUseTransitionUpdate.tsx))
@@ -273,6 +309,32 @@ return (
 );
 ```
 
+**Deferred useIsSSR with Memoization** ([NoSuspenseFallbackOnDeferredExternalStoreMismatchWithMemo.tsx](src/NoSuspenseFallbackOnDeferredExternalStoreMismatchWithMemo.tsx))
+
+```jsx
+const ChildWithSuspenseWithMemo = memo(ChildWithSuspense);
+
+const emptySubscribe = () => () => {};
+const useIsSSR = () => {
+  const isSSRSync = useSyncExternalStore(
+    emptySubscribe,
+    () => false, // client snapshot
+    () => true, // server snapshot
+  );
+  return useDeferredValue(isSSRSync);
+};
+
+// ...
+const isSSR = useIsSSR();
+// ✅ Prevents fallback during hydration (☝️ requires React.memo)
+return (
+  <>
+    <button>{isSSR ? "Server output" : "Client output"}</button>
+    <ChildWithSuspenseWithMemo />
+  </>
+);
+```
+
 ### ⚠️ Transition Edge Cases
 
 While `startTransition` effectively prevents Suspense fallbacks during hydration, there are important exceptions that can catch developers off guard.
@@ -340,6 +402,29 @@ The state change itself is properly wrapped in a transition, but **rendering the
 ### The External Store Exception
 
 External stores using `useSyncExternalStore` have a unique constraint: they **cannot benefit from transition optimizations**. As documented in the React docs, external store mutations cannot be marked as non-blocking transitions, making them always trigger Suspense fallbacks.
+
+### The useIsSSR Pattern (Server/Client Snapshot Mismatch)
+
+The store doesn't even need to emit an update to break Suspense during hydration: when `getServerSnapshot` returns a different value than `getSnapshot`, React forces a **synchronous re-render right after hydration** - without any user interaction. This is the basis of the popular `useIsSSR` pattern described by [Jacob "kurtextrem" Groß](https://kurtextrem.de/posts/react-uses-hydration):
+
+```jsx
+const emptySubscribe = () => () => {};
+const returnFalse = () => false;
+const trueOnServerOrHydration = () => true;
+
+function useIsSSR() {
+  const isSSRSync = useSyncExternalStore(
+    emptySubscribe,
+    returnFalse,
+    trueOnServerOrHydration,
+  );
+  return useDeferredValue(isSSRSync);
+}
+```
+
+`useDeferredValue` makes the `true` → `false` switch itself happen at deferred priority (keeping the first client render consistent with the server HTML and time-slicing the update). **But that alone is not enough for Suspense**: as the article itself notes, `useSyncExternalStore` still forces a non-concurrent render pass, and if that pass re-renders a dehydrated Suspense boundary with a pending lazy child, the server-rendered content is discarded and the fallback appears ([test](src/SuspenseFallbackOnDeferredExternalStoreMismatch.tsx)).
+
+The fix is the same as for plain `useDeferredValue`: wrap the Suspense subtree in `React.memo` (or use React Compiler) so the forced synchronous pass bails out before reaching the boundary, and only the deferred pass carries the new value ([test](src/NoSuspenseFallbackOnDeferredExternalStoreMismatchWithMemo.tsx)).
 
 ### The Async Context Limitation
 
