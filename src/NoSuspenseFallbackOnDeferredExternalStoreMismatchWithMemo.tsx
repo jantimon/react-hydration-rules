@@ -1,4 +1,4 @@
-/** @file useSyncExternalStore + useDeferredValue + React.memo (deferred useIsSSR pattern) */
+/** @file useSyncExternalStore + useDeferredValue with React.memo optimization (useIsSSR pattern) */
 import React, {
   Suspense,
   lazy,
@@ -20,11 +20,7 @@ let LazyChild = lazy(() =>
   ),
 );
 
-// useIsSSR pattern - the store never emits, but the server snapshot (true)
-// differs from the client snapshot (false), so React re-renders right after
-// hydration - useDeferredValue keeps the value switch at deferred priority
-// and React.memo shields the Suspense boundary from the forced
-// non-concurrent render pass of useSyncExternalStore
+// useIsSSR pattern - see https://kurtextrem.de/posts/react-uses-hydration for more details
 const emptySubscribe = () => () => {};
 const returnFalse = () => false;
 const trueOnServerOrHydration = () => true;

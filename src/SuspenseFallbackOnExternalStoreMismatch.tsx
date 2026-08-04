@@ -1,4 +1,4 @@
-/** @file useSyncExternalStore with different server and client snapshots (useIsSSR pattern) */
+/** @file useSyncExternalStore with a server/client snapshot mismatch (useIsSSR pattern) */
 import React, { Suspense, lazy, useSyncExternalStore } from "react";
 import { hydrateRoot } from "react-dom/client";
 
@@ -14,9 +14,7 @@ let LazyChild = lazy(() =>
   ),
 );
 
-// useIsSSR pattern - the store never emits, but the server snapshot (true)
-// differs from the client snapshot (false), so React forces a synchronous
-// re-render right after hydration - no user interaction needed
+// useIsSSR pattern - see https://kurtextrem.de/posts/react-uses-hydration for more details
 const emptySubscribe = () => () => {};
 const returnFalse = () => false;
 const trueOnServerOrHydration = () => true;
