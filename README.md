@@ -402,6 +402,7 @@ The state change itself is properly wrapped in a transition, but **rendering the
 ### The External Store Exception
 
 External stores using `useSyncExternalStore` have a unique constraint: they **cannot benefit from transition optimizations**. As documented in the React docs, external store mutations cannot be marked as non-blocking transitions, making them always trigger Suspense fallbacks.
+You can workaround that by combining `useSyncExternalStore` with `useDeferredValue` (and `useMemo`), as shown by [this article](https://kurtextrem.de/posts/react-uses-hydration).
 
 ### The useIsSSR Pattern (Server/Client Snapshot Mismatch)
 
