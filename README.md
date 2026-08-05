@@ -133,6 +133,7 @@ flowchart TD
 | `useSyncExternalStore`<br>(server/client mismatch)             | 💣 **Triggers fallback**  | ✅ **Prevents fallbacks** | `useIsSSR` pattern: a differing `getServerSnapshot` forces a synchronous re-render right after hydration¹⁾ ([See kurtextrem.de](https://kurtextrem.de/posts/react-uses-hydration)) | [code](src/SuspenseFallbackOnExternalStoreMismatch.tsx)              |
 | `useSyncExternalStore`<br>+ `useDeferredValue`                 | 💣 **Still triggers**     | ✅ **Prevents fallbacks** | Deferring the value switch is not enough - the store still forces a non-concurrent render pass¹⁾                                                                                | [code](src/SuspenseFallbackOnDeferredExternalStoreMismatch.tsx)      |
 | `useSyncExternalStore`<br>+ `useDeferredValue` + `React.memo`  | ✅ **Prevents fallbacks** |                           | Memoization shields the Suspense boundary from the forced synchronous render pass                                                                                               | [code](src/NoSuspenseFallbackOnDeferredExternalStoreMismatchWithMemo.tsx) |
+| `useSyncExternalStore`<br>+ `useDeferredValue` + memoized children | ✅ **Prevents fallbacks** |                       | `useChildrenWithData` render-prop variant - `useMemo` + a stable children function keeps the subtree identical during the forced synchronous render pass                        | [code](src/NoSuspenseFallbackOnChildrenWithData.tsx)                 |
 
 ¹⁾ React Compiler's automatic memoization prevents fallbacks
 
@@ -335,6 +336,31 @@ return (
 );
 ```
 
+**Deferred useIsSSR with Memoized Children** ([NoSuspenseFallbackOnChildrenWithData.tsx](src/NoSuspenseFallbackOnChildrenWithData.tsx))
+
+```jsx
+const useChildrenWithData = (children) => {
+  const isSSRSync = useSyncExternalStore(
+    emptySubscribe,
+    () => false, // client snapshot
+    () => true, // server snapshot
+  );
+  const isSSR = useDeferredValue(isSSRSync);
+  return useMemo(() => children(isSSR), [isSSR, children]);
+};
+
+// ☝️ children must be referentially stable (defined outside the component)
+const renderContent = (isSSR) => (
+  <>
+    <button>{isSSR ? "Server output" : "Client output"}</button>
+    <ChildWithSuspense />
+  </>
+);
+
+const App = () => <>{useChildrenWithData(renderContent)}</>;
+// ✅ Prevents fallback during hydration - useMemo keeps the subtree identical
+```
+
 ### ⚠️ Transition Edge Cases
 
 While `startTransition` effectively prevents Suspense fallbacks during hydration, there are important exceptions that can catch developers off guard.
@@ -425,6 +451,8 @@ function useIsSSR() {
 `useDeferredValue` makes the `true` → `false` switch itself happen at deferred priority (keeping the first client render consistent with the server HTML and time-slicing the update). **But that alone is not enough for Suspense**: as the article itself notes, `useSyncExternalStore` still forces a non-concurrent render pass, and if that pass re-renders a dehydrated Suspense boundary with a pending lazy child, the server-rendered content is discarded and the fallback appears ([test](src/SuspenseFallbackOnDeferredExternalStoreMismatch.tsx)).
 
 The fix is the same as for plain `useDeferredValue`: wrap the Suspense subtree in `React.memo` (or use React Compiler) so the forced synchronous pass bails out before reaching the boundary, and only the deferred pass carries the new value ([test](src/NoSuspenseFallbackOnDeferredExternalStoreMismatchWithMemo.tsx)).
+
+The article's `useChildrenWithData` helper is the render-prop flavour of the same fix: memoizing `children(deferredData)` with `useMemo` keeps the returned elements referentially identical during the synchronous pass, so React bails out of the Suspense subtree without `React.memo` ([test](src/NoSuspenseFallbackOnChildrenWithData.tsx)). Note that the children function itself must be referentially stable, otherwise the memoization is defeated.
 
 ### The Async Context Limitation
 
